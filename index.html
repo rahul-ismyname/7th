@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The ONE-LINE ANSWER PROJECT</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Playfair+Display:ital,wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom font setup */
+        .font-sans { font-family: 'Inter', sans-serif; }
+        /* Used for the answer in the main display */
+        .font-serif-wisdom { font-family: 'Playfair Display', serif; }
+        /* Used for the answer text on the image post */
+        .font-post-text { font-family: 'Playfair Display', serif; } 
+        
+        /* Custom spinner for loading states */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 1.5rem;
+            height: 1.5rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* More colorful background */
+        .body-bg {
+            /* Vibrant, soft gradient */
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdf4 100%);
+        }
+    </style>
+</head>
+<body class="body-bg font-sans">
+
+    <div class="min-h-screen p-4 sm:p-8 flex justify-center">
+        <div class="w-full max-w-4xl space-y-8">
+            <header class="text-center pt-4 pb-2">
+                <h1 class="text-4xl font-extrabold text-teal-700 tracking-tight">
+                    <span class="text-gray-900">The</span> ONE-LINE ANSWER
+                </h1>
+                <p class="mt-1 text-gray-500 max-w-lg mx-auto">
+                    Instant clarity and closure. The core intelligence is restraint.
+                </p>
+            </header>
+
+            <!-- Question Input -->
+            <div class="bg-white p-6 rounded-xl shadow-2xl border-2 border-teal-200">
+                <h2 class="text-xl font-bold mb-4 text-gray-900">Ask Your Question</h2>
+                <textarea
+                    id="question-input"
+                    rows="3"
+                    placeholder="How can I maintain motivation during a long project? How to make coffee? How do I deal with regret?"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 transition duration-150 resize-none"
+                    title="Press Enter to submit, Shift+Enter for a new line"
+                ></textarea>
+                <button
+                    id="submit-button"
+                    class="w-full mt-4 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium transition duration-300 bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-300/50"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <span>Get One-Line Answer</span>
+                </button>
+                <p id="error-message" class="mt-3 text-sm text-red-600 font-medium p-2 bg-red-50 rounded-lg border border-red-200 hidden"></p>
+            </div>
+            
+            <!-- Search Suggestions -->
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold mb-3 text-gray-700">Today's Clarity Prompts:</h3>
+                <div id="suggestion-pills" class="flex flex-wrap gap-2">
+                    <!-- Pills are populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Result Display Container -->
+            <div id="result-container" class="hidden">
+                <div class="bg-teal-50 p-6 rounded-xl shadow-xl border-t-4 border-teal-500 space-y-4">
+                    <h2 class="text-xl font-semibold text-teal-700">The Thought:</h2>
+                    
+                    <!-- The Single-Sentence Answer -->
+                    <div id="answer-display" class="relative text-2xl font-serif-wisdom italic text-gray-800 leading-relaxed bg-white p-4 rounded-lg shadow-inner border border-teal-200">
+                        <!-- Answer content goes here -->
+                        <button
+                            id="copy-button"
+                            class="absolute top-2 right-2 text-gray-400 hover:text-teal-600 p-2 rounded-full transition duration-150"
+                            title="Copy Answer"
+                        >
+                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        </button>
+                        <span id="copy-message" class="absolute -top-3 right-8 px-2 py-0.5 text-xs bg-pink-500 text-white rounded-full transition-opacity duration-300 opacity-0 pointer-events-none">Copied!</span>
+                    </div>
+
+                    <!-- Create Post Feature -->
+                    <div class="pt-4 border-t border-teal-200">
+                        <h3 class="text-lg font-medium text-gray-700 mb-3">Create Post Visual</h3>
+                        <button
+                            id="create-post-button"
+                            class="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-white font-medium transition duration-300 bg-pink-600 hover:bg-pink-700 shadow-lg shadow-pink-300/50"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+                            <span>Create New Shareable Post Image</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generated Post Display -->
+            <div id="post-container" class="hidden">
+                <div class="bg-white p-6 rounded-xl shadow-2xl border-t-4 border-pink-500">
+                    <h2 class="text-xl font-semibold text-pink-700 mb-4">Shareable Post</h2>
+                    <div class="relative w-full aspect-square max-w-md mx-auto rounded-xl overflow-hidden shadow-xl">
+                        <img id="post-image" alt="Abstract post background" class="w-full h-full object-cover" />
+                        <!-- Text overlay is handled in JS for clean placement -->
+                        <div id="post-text-overlay" class="absolute inset-0 flex items-center justify-center p-8 bg-black bg-opacity-30">
+                            <!-- Answer text goes here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Download Link (The Shareable Link Alternative) -->
+                    <div class="mt-6">
+                        <a 
+                            id="download-link" 
+                            href="#" 
+                            download="OneLineThought_Post.png"
+                            class="w-full block text-center py-3 px-4 rounded-lg text-white font-medium transition duration-300 bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-300/50"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5 mr-2 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            Download Image (Shareable)
+                        </a>
+                        <p class="mt-2 text-xs text-gray-500 text-center">
+                            The image is downloaded to your device for easy sharing on social media platforms.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- Final Statement -->
+            <div class="text-center pt-4 pb-8 text-gray-500 italic">
+                <p>
+                    "The system generates context-aware, one-line responses by identifying the intent of the user’s question and compressing timeless, book-inspired wisdom into a single, satisfying sentence.”
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBAL VARIABLES & CONFIGURATION ---
+        
+        // API Key for Gemini/Imagen (defined as empty string as required)
+        const API_KEY = "AIzaSyATDDLunTF2mkeMy46DcnagA7ZFFGWyx4g"; 
+        const TEXT_MODEL = "gemini-2.5-flash-preview-09-2025";
+        const IMAGE_MODEL = "imagen-4.0-generate-001";
+
+        // Search Suggestions
+        const searchSuggestions = [
+            "How do I overcome procrastination?",
+            "What is the simplest way to start meditating?",
+            "How can I set better boundaries at work?",
+            "What is the true cost of perfectionism?",
+            "How should I handle constructive criticism?",
+            "What is the foundation of genuine happiness?",
+        ];
+        
+        // The meticulously crafted System Instruction
+        const SYSTEM_INSTRUCTION = `
+You are the ONE-LINE ANSWER PROJECT system, built on intentional minimalism to provide instant clarity and closure. Your ONLY purpose is to answer the user's question with a single, complete, satisfying sentence of calm, neutral, book-inspired wisdom.
+
+STRICT RULES (Violations are invalid):
+1. Output MUST be exactly ONE complete sentence.
+2. NO follow-up questions or suggestions.
+3. NO explanations, multi-paragraph answers, disclaimers (unless required for safety), or external references.
+4. NO bullet points, lists, or emojis.
+5. Tone MUST be calm, respectful, and neutral, promoting mental clarity.
+6. Adapt length based on intent: very short for procedural, medium for emotional/reflective/practical life.
+7. Classify intent (Procedural, Emotional, Goal/Career, Factual) to inform style, using practical wisdom for career and reflective language for emotional topics.
+8. Use simple, book-inspired language, avoiding all slang, dramatic exaggeration, and absolute claims ('always', 'never').
+9. The sentence must feel complete and provide closure in a single thought.
+10. This project succeeds not because it says more, but because it knows when to stop. Exercise maximum restraint.
+`;
+        
+        // --- DOM Elements ---
+        const questionInput = document.getElementById('question-input');
+        const submitButton = document.getElementById('submit-button');
+        const errorMessage = document.getElementById('error-message');
+        const resultContainer = document.getElementById('result-container');
+        const answerDisplay = document.getElementById('answer-display');
+        const createPostButton = document.getElementById('create-post-button');
+        const postImage = document.getElementById('post-image');
+        const postTextOverlay = document.getElementById('post-text-overlay');
+        const downloadLink = document.getElementById('download-link');
+        const suggestionPillsContainer = document.getElementById('suggestion-pills');
+        const postContainer = document.getElementById('post-container'); 
+
+        // --- State Variables ---
+        let currentAnswer = '';
+        let isGeneratingAnswer = false;
+        let isGeneratingImage = false;
+
+        // --- Utility Functions ---
+
+        /**
+         * Executes a fetch request with exponential backoff.
+         */
+        async function fetchWithRetry(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        // If 4xx or 5xx error, throw to trigger retry
+                        const errorBody = await response.json();
+                        throw new Error(`HTTP error! status: ${response.status}. Message: ${errorBody.error.message}`);
+                    }
+                    return response;
+                } catch (error) {
+                    console.error(`Attempt ${i + 1} failed:`, error.message);
+                    if (i === retries - 1) throw error; // Re-throw on last attempt
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000; // 1s, 2s, 4s + jitter
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        // --- Rendering and State Management ---
+
+        function updateUI() {
+            // Error Display
+            errorMessage.classList.toggle('hidden', !errorMessage.textContent);
+
+            // Answer Generation UI
+            questionInput.disabled = isGeneratingAnswer;
+            submitButton.disabled = isGeneratingAnswer;
+            submitButton.classList.toggle('bg-teal-400', isGeneratingAnswer);
+            submitButton.classList.toggle('hover:bg-teal-700', !isGeneratingAnswer);
+            submitButton.innerHTML = isGeneratingAnswer
+                ? '<div class="spinner"></div> <span>Generating Thought...</span>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> <span>Get One-Line Answer</span>';
+
+            // Post Generation UI
+            createPostButton.disabled = isGeneratingImage || !currentAnswer;
+            createPostButton.classList.toggle('bg-pink-400', isGeneratingImage);
+            createPostButton.classList.toggle('hover:bg-pink-700', !isGeneratingImage);
+            createPostButton.innerHTML = isGeneratingImage
+                ? '<div class="spinner"></div> <span>Designing Abstract Visual...</span>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg> <span>Create New Shareable Post Image</span>';
+            
+            // Result Visibility
+            resultContainer.classList.toggle('hidden', !currentAnswer);
+            postContainer.classList.toggle('hidden', !postImage.src);
+        }
+
+        function handleError(message) {
+            errorMessage.textContent = message;
+            currentAnswer = '';
+            postImage.src = '';
+            updateUI();
+        }
+        
+        // --- GEMINI/IMAGEN API FUNCTIONS ---
+
+        /**
+         * Fetches the one-line response from the Gemini model.
+         */
+        async function getOneLineResponse(userQuery) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${API_KEY}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: SYSTEM_INSTRUCTION }]
+                },
+            };
+
+            const response = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!text) {
+                throw new Error(result.error?.message || "Failed to generate a complete one-line thought.");
+            }
+            return text.trim();
+        }
+
+        /**
+         * Generates an abstract image based on the generated answer for the "Create Post" feature.
+         */
+        async function generatePostImage(oneLineAnswer) {
+            // UPDATED PROMPT: Requesting a high-contrast, geometric, and minimalist design
+            const imagePrompt = `A high-contrast, geometric, and minimalist background for a quote. Use a primary color pair like deep navy blue and soft coral pink with clean, sharp lines and intentional shadows. The style should be modern, digital, and striking abstract art. No text, no faces, no people, no specific real-world objects.`; 
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGE_MODEL}:predict?key=${API_KEY}`;
+
+            const payload = {
+                instances: { prompt: imagePrompt },
+                parameters: { "sampleCount": 1 }
+            };
+
+            const response = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            const base64Data = result?.predictions?.[0]?.bytesBase64Encoded;
+
+            if (!base64Data) {
+                throw new Error("Failed to retrieve image data.");
+            }
+
+            return `data:image/png;base64,${base64Data}`;
+        }
+
+        // --- Event Handlers ---
+
+        async function handleQuestionSubmit() {
+            const question = questionInput.value.trim();
+
+            if (!question) {
+                handleError("Please ask a question to receive your one-line thought.");
+                return;
+            }
+
+            currentAnswer = '';
+            postImage.src = ''; 
+            errorMessage.textContent = '';
+            isGeneratingAnswer = true;
+            updateUI();
+
+            try {
+                const answer = await getOneLineResponse(question);
+                currentAnswer = answer;
+                
+                // Update the answer display content while preserving the button structure
+                let copyButtonHTML = '';
+                let copyMessageHTML = '';
+                const existingCopyButton = answerDisplay.querySelector('#copy-button');
+                const existingCopyMessage = answerDisplay.querySelector('#copy-message');
+
+                if (existingCopyButton) {
+                    copyButtonHTML = existingCopyButton.outerHTML;
+                } else {
+                    // Fallback to ensure the copy button exists if it was somehow removed
+                     copyButtonHTML = `<button id="copy-button" class="absolute top-2 right-2 text-gray-400 hover:text-teal-600 p-2 rounded-full transition duration-150" title="Copy Answer"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>`;
+                }
+                
+                if (existingCopyMessage) {
+                    copyMessageHTML = existingCopyMessage.outerHTML;
+                } else {
+                    // Fallback to ensure the copy message exists
+                    copyMessageHTML = `<span id="copy-message" class="absolute -top-3 right-8 px-2 py-0.5 text-xs bg-pink-500 text-white rounded-full transition-opacity duration-300 opacity-0 pointer-events-none">Copied!</span>`;
+                }
+
+
+                answerDisplay.innerHTML = `${copyButtonHTML} ${copyMessageHTML} ${answer}`;
+            } catch (err) {
+                handleError(`Generation Error: ${err.message}`);
+            } finally {
+                isGeneratingAnswer = false;
+                updateUI();
+            }
+        }
+
+        async function handleCreatePost() {
+            if (!currentAnswer) {
+                handleError("Generate an answer first before creating a post.");
+                return;
+            }
+
+            errorMessage.textContent = '';
+            postImage.src = '';
+            isGeneratingImage = true;
+            updateUI();
+
+            try {
+                const imageUrl = await generatePostImage(currentAnswer);
+                postImage.src = imageUrl;
+                
+                // Set the download link href to the Base64 data URL
+                downloadLink.href = imageUrl;
+
+                // NEW DESIGN: Overlay text inside a light-colored, semi-transparent card
+                postTextOverlay.innerHTML = `
+                    <div class="p-4 sm:p-6 mx-auto w-11/12 bg-white bg-opacity-90 rounded-xl shadow-2xl border-b-4 border-pink-500 backdrop-blur-sm">
+                        <p class="text-gray-900 text-center text-xl sm:text-3xl font-post-text font-bold leading-snug tracking-tight px-2">
+                            "${currentAnswer}"
+                        </p>
+                        <p class="mt-3 text-sm text-center text-pink-700 font-bold">
+                           — The One-Line Answer Project
+                        </p>
+                    </div>
+                `;
+            } catch (err) {
+                handleError(`Post Creation Error: ${err.message}`);
+            } finally {
+                isGeneratingImage = false;
+                updateUI();
+            }
+        }
+
+        function copyToClipboard() {
+            if (currentAnswer) {
+                // Using document.execCommand('copy') for compatibility in sandbox environments
+                document.execCommand('copy', false, currentAnswer);
+                
+                // Show copied message
+                const currentCopyMessage = answerDisplay.querySelector('#copy-message');
+                if (currentCopyMessage) {
+                    currentCopyMessage.classList.remove('opacity-0', 'pointer-events-none');
+                    currentCopyMessage.classList.add('opacity-100');
+                    setTimeout(() => {
+                        currentCopyMessage.classList.add('opacity-0', 'pointer-events-none');
+                        currentCopyMessage.classList.remove('opacity-100');
+                    }, 2000);
+                }
+            }
+        }
+        
+        function populateSuggestions() {
+            suggestionPillsContainer.innerHTML = ''; // Clear existing content
+            searchSuggestions.forEach(suggestion => {
+                const pill = document.createElement('button');
+                pill.className = 'px-3 py-1 text-sm rounded-full bg-gray-200 text-gray-700 hover:bg-teal-200 transition duration-150 cursor-pointer shadow-sm border border-gray-300';
+                pill.textContent = suggestion;
+                pill.title = "Click to set this as your question.";
+                pill.addEventListener('click', () => {
+                    questionInput.value = suggestion;
+                    questionInput.focus();
+                });
+                suggestionPillsContainer.appendChild(pill);
+            });
+        }
+
+        // --- Initialization ---
+
+        window.onload = function() {
+            populateSuggestions(); // Add search suggestions to the UI
+
+            submitButton.addEventListener('click', handleQuestionSubmit);
+            createPostButton.addEventListener('click', handleCreatePost);
+            
+            // Event listener for Enter/Shift+Enter behavior
+            questionInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); // Stop default action (new line)
+                    if (!isGeneratingAnswer) {
+                        handleQuestionSubmit();
+                    }
+                }
+                // If Shift+Enter, allow default behavior (new line)
+            });
+
+            // Attach copy listener dynamically
+            resultContainer.addEventListener('click', (e) => {
+                if (e.target.closest('#copy-button')) {
+                    copyToClipboard();
+                }
+            });
+            
+            updateUI();
+        };
+
+    </script>
+</body>
+</html>
