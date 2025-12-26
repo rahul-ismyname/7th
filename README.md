@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Waitly - Virtual Queue Management System
 
-## Getting Started
+Waitly is a modern, real-time queue management application that eliminates physical waiting lines. Users can join queues remotely and receive smart notifications when their turn approaches.
 
-First, run the development server:
+## 🚀 Features
+
+### For Users
+- **Virtual Queuing**: Join queues from anywhere without physical presence
+- **Single Queue Limit**: One active queue at a time to prevent abuse
+- **Live Countdown**: Real-time MM:SS countdown to your turn
+- **Smart Notifications**: 
+  - 5-minute warning before your turn
+  - Instant alert when it's your turn
+- **History Management**: View past visits and clear history
+- **Mobile-First Design**: Toggle between Map and List views on mobile
+
+### For Businesses (Vendors)
+- **Queue Dashboard**: Manage active queues, call next customers, mark no-shows
+- **Business ID**: Copyable business ID for easy reference and sharing
+- **QR Code Integration**: Generate printable QR posters for walk-in customers
+- **Real-time Queue List**: See waiting customers with position numbers
+- **Approval Status**: Clear pending/live status indicators
+
+### Admin Portal
+- **Business Verification**: Approve/reject vendor registrations
+- **Stats Dashboard**: Total, pending, and approved business counts
+- **Full Oversight**: View all places and tickets across the platform
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | [Next.js 16+](https://nextjs.org/) (App Router, Turbopack) |
+| Database & Auth | [Supabase](https://supabase.com/) (PostgreSQL + Realtime) |
+| Styling | [Tailwind CSS](https://tailwindcss.com/) |
+| Maps | [React Leaflet](https://react-leaflet.js.org/) + OpenStreetMap |
+| Emails | [Resend](https://resend.com/) |
+
+## ⚙️ Quick Start
 
 ```bash
+# 1. Clone & Install
+git clone https://github.com/your-username/waitly.git
+cd waitly
+npm install
+
+# 2. Environment Setup (.env.local)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+RESEND_API_KEY=your_resend_api_key
+
+# 3. Database Setup
+# Run `complete_schema.sql` in Supabase SQL Editor
+
+# 4. Start Development
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📱 Pages
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Route | Description |
+|-------|-------------|
+| `/` | Main Map & Queue Interface |
+| `/login` | User Authentication |
+| `/vendor` | Vendor Portal (Manage Queues) |
+| `/admin` | Admin Console (Hidden, for approvals) |
+| `/history` | User Ticket History |
+| `/profile` | User Settings & Sign Out |
 
-## Learn More
+## 🔒 Security
 
-To learn more about Next.js, take a look at the following resources:
+- **Row Level Security (RLS)**: Users can only view/edit/delete their own tickets
+- **Vendor Isolation**: Vendors can only manage their own businesses
+- **Admin-Only Approval**: Businesses require admin verification to go live
+- **Closed Registration**: Businesses default to "Pending" status
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 💡 Future Enhancement Ideas
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Here are some features to consider for future updates:
 
-## Deploy on Vercel
+### High Priority
+- [ ] **Push Notifications**: Native mobile push via PWA or app
+- [ ] **SMS Alerts**: Twilio integration for SMS notifications
+- [ ] **Email Confirmations**: Send ticket confirmation emails
+- [ ] **Analytics Dashboard**: Queue metrics, peak hours, avg wait times
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Medium Priority
+- [ ] **Multi-Location Support**: One vendor managing multiple branches
+- [ ] **Walk-in Kiosk Mode**: Fullscreen tablet interface for walk-ins
+- [ ] **Estimated Wait Calculator**: AI-based wait time predictions
+- [ ] **Staff Management**: Multiple operators per business
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Nice to Have
+- [ ] **Dark Mode**: System-wide dark theme toggle
+- [ ] **Language Support**: i18n for Hindi, Spanish, etc.
+- [ ] **Queue Pre-booking**: Schedule queue joins in advance
+- [ ] **Customer Feedback**: Post-visit ratings and reviews
+- [ ] **Wait Time Leaderboard**: Gamification for frequent visitors
+
+## 📄 License
+
+MIT License
