@@ -38,11 +38,21 @@ export async function signupUser(formData: FormData) {
         });
 
         if (createError) {
-            console.error("Create User Error:", createError);
-            return { error: createError.message };
+            // Check if user already exists
+            const isExistingUser = createError.message?.toLowerCase().includes("registered") ||
+                createError.message?.toLowerCase().includes("exists") ||
+                createError.status === 422;
+
+            if (!isExistingUser) {
+                console.error("Create User Error:", createError);
+                return { error: createError.message };
+            }
+            // If user exists, we proceed to try and generate a link (resend verification)
         }
 
-        if (!user.user) return { error: "Failed to create user object" };
+        // Note: user.user might be null if we skipped the error, so we don't check it here.
+        // We rely on generateLink using the 'email' and 'password' variables directly.
+
 
         // 2. Generate Confirmation Link
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
