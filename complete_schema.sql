@@ -40,7 +40,10 @@ create table if not exists tickets (
   token_number text not null,
   status text default 'waiting', -- waiting, serving, completed, cancelled
   estimated_wait int,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  -- Feedback fields
+  has_feedback_provided boolean default false,
+  user_reported_wait_time int default 0
 );
 
 -- 3. ENABLE REALTIME (Idempotent)
