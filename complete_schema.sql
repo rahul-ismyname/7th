@@ -118,6 +118,46 @@ create policy "Anon View Tickets" on tickets for select using (user_id is null);
 create policy "Anon Create Tickets" on tickets for insert with check (user_id is null);
 
 
+-- 7. STORAGE POLICIES (Avatars)
+-- Create a new storage bucket for avatars
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+-- Allow public access to avatars
+drop policy if exists "Avatar Public Access" on storage.objects;
+create policy "Avatar Public Access"
+on storage.objects for select
+using ( bucket_id = 'avatars' );
+
+-- Allow authenticated users to upload avatars
+drop policy if exists "Avatar Upload Access" on storage.objects;
+create policy "Avatar Upload Access"
+on storage.objects for insert
+with check (
+  bucket_id = 'avatars' 
+  and auth.role() = 'authenticated'
+);
+
+-- Allow users to update their own avatars
+drop policy if exists "Avatar Update Access" on storage.objects;
+create policy "Avatar Update Access"
+on storage.objects for update
+using (
+  bucket_id = 'avatars' 
+  and auth.uid() = owner
+);
+
+-- Allow users to delete their own avatars
+drop policy if exists "Avatar Delete Access" on storage.objects;
+create policy "Avatar Delete Access"
+on storage.objects for delete
+using (
+  bucket_id = 'avatars' 
+  and auth.uid() = owner
+);
+
+
 -- 6. DUMMY DATA SEEDING (Optional)
 insert into places (name, type, address, rating, is_approved, lat, lng, live_wait_time, crowd_level, queue_length, current_serving_token, estimated_turn_time)
 values

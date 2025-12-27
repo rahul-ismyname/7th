@@ -5,7 +5,7 @@ import { usePlaces } from "@/context/PlacesContext";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, Lock, LogOut, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
+import { User, Lock, LogOut, ArrowLeft, CheckCircle2, AlertCircle, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
@@ -17,6 +17,48 @@ export default function ProfilePage() {
 
     // Profile State
     const [displayName, setDisplayName] = useState(user?.user_metadata?.display_name || "");
+    const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || "");
+    const [uploading, setUploading] = useState(false);
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setUploading(true);
+
+            if (!e.target.files || e.target.files.length === 0) {
+                throw new Error('You must select an image to upload.');
+            }
+
+            const file = e.target.files[0];
+            const fileExt = file.name.split('.').pop();
+            const filePath = `${user?.id}-${Math.random()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+            if (data) {
+                const { error: updateError } = await supabase.auth.updateUser({
+                    data: { avatar_url: data.publicUrl }
+                });
+
+                if (updateError) throw updateError;
+
+                setAvatarUrl(data.publicUrl);
+                setMessage({ type: 'success', text: "Profile picture updated!" });
+            }
+
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message });
+        } finally {
+            setUploading(false);
+        }
+    };
 
     // Password State
     const [password, setPassword] = useState("");
@@ -36,6 +78,30 @@ export default function ProfilePage() {
             setMessage({ type: 'success', text: "Profile updated successfully!" });
         } catch (err: any) {
             setMessage({ type: 'error', text: err.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const presetAvatars = [
+        '/avatars/robot.png',
+        '/avatars/cat.png',
+        '/avatars/ninja.png',
+    ];
+
+    const handlePresetSelect = async (url: string) => {
+        try {
+            setLoading(true);
+            const { error } = await supabase.auth.updateUser({
+                data: { avatar_url: url }
+            });
+
+            if (error) throw error;
+
+            setAvatarUrl(url);
+            setMessage({ type: 'success', text: "Avatar updated!" });
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message });
         } finally {
             setLoading(false);
         }
@@ -101,10 +167,46 @@ export default function ProfilePage() {
 
             <main className="max-w-md mx-auto p-6 space-y-8">
                 {/* User Info Card */}
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
-                    <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-3xl font-black mx-auto mb-4">
-                        {(displayName?.[0] || user.email?.[0] || "U").toUpperCase()}
+                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center relative group">
+                    <div className="relative w-24 h-24 mx-auto mb-4">
+                        <div className="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-3xl font-black overflow-hidden border-4 border-white shadow-lg">
+                            {avatarUrl ? (
+                                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                (displayName?.[0] || user.email?.[0] || "U").toUpperCase()
+                            )}
+                        </div>
+                        <label className="absolute bottom-0 right-0 p-2 bg-slate-900 text-white rounded-full cursor-pointer hover:bg-indigo-600 transition-colors shadow-md">
+                            <Camera className="w-4 h-4" />
+                            <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleAvatarUpload}
+                                disabled={uploading}
+                            />
+                        </label>
+                        {uploading && (
+                            <div className="absolute inset-0 bg-white/50 rounded-full flex items-center justify-center">
+                                <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+                            </div>
+                        )}
                     </div>
+
+                    {/* Presets */}
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                        {presetAvatars.map((url, i) => (
+                            <button
+                                key={i}
+                                onClick={() => handlePresetSelect(url)}
+                                disabled={loading}
+                                className="w-10 h-10 rounded-full border-2 border-white shadow-md hover:scale-110 transition-transform overflow-hidden focus:ring-2 ring-indigo-500"
+                            >
+                                <img src={url} alt="Preset" className="w-full h-full object-cover" />
+                            </button>
+                        ))}
+                    </div>
+
                     <h2 className="text-xl font-bold text-slate-900">{displayName || "User"}</h2>
                     <p className="text-slate-500 text-sm font-medium">{user.email}</p>
                 </div>

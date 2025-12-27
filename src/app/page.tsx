@@ -102,7 +102,11 @@ function HomeContent() {
                     href="/profile"
                     className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md hover:shadow-lg transition-all"
                   >
-                    {(user.email?.[0] || 'U').toUpperCase()}
+                    {user.user_metadata?.avatar_url ? (
+                      <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover rounded-xl" />
+                    ) : (
+                      (user.email?.[0] || 'U').toUpperCase()
+                    )}
                   </Link>
                 </>
               ) : (
