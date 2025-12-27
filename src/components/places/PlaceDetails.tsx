@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { AddWaitTimeModal } from "./AddWaitTimeModal";
+import { JoinQueueModal, JoinQueueFormData } from "./JoinQueueModal";
 import { usePlaces } from "@/context/PlacesContext";
 
 interface PlaceDetailsProps {
@@ -26,18 +27,23 @@ interface PlaceDetailsProps {
 export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
     const { activeTickets, joinQueue, leaveQueue } = usePlaces();
     const [showWaitTimeModal, setShowWaitTimeModal] = useState(false);
+    const [showJoinModal, setShowJoinModal] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
 
     // Check if user has a ticket for this place
     const myTicket = activeTickets.find(t => t.placeId === place.id && t.status === 'waiting');
     const hasJoined = !!myTicket;
 
-    const handleJoin = async () => {
+    const handleJoinClick = () => {
+        setShowJoinModal(true);
+    };
+
+    const handleConfirmJoin = async (formData: JoinQueueFormData) => {
         if (hasJoined || isJoining) return;
         setIsJoining(true);
+
         try {
-            await joinQueue(place.id);
-            // activeTickets will update via Realtime, flipping hasJoined to true
+            await joinQueue(place.id, formData);
         } catch (e) {
             console.error(e);
             setIsJoining(false);
@@ -190,7 +196,7 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
                                 </div>
 
                                 <button
-                                    onClick={handleJoin}
+                                    onClick={handleJoinClick}
                                     disabled={isJoining}
                                     className="w-full bg-primary hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                                 >
@@ -209,6 +215,12 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
                                 <p className="text-center text-xs text-muted-foreground font-medium opacity-60">
                                     You can browse other places while you wait.
                                 </p>
+                                <JoinQueueModal
+                                    isOpen={showJoinModal}
+                                    onClose={() => setShowJoinModal(false)}
+                                    place={place}
+                                    onConfirm={handleConfirmJoin}
+                                />
                             </>
                         ) : (
                             <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 text-center animate-in zoom-in-95 duration-300">

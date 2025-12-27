@@ -42,7 +42,7 @@ interface PlacesContextType {
     addPlace: (place: Place) => void;
     removePlace: (id: string) => void;
     resetPlaces: () => void;
-    joinQueue: (placeId: string) => void;
+    joinQueue: (placeId: string, details?: { counter: string; preferredTime: string }) => void;
     leaveQueue: (placeId: string) => void;
     updateTicketStatus: (ticketId: string, status: Ticket['status']) => Promise<void>;
     callNextTicket: (placeId: string, tokenNumber: string) => Promise<void>;
@@ -391,7 +391,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         setActiveTickets([]);
     };
 
-    const joinQueue = async (placeId: string) => {
+    const joinQueue = async (placeId: string, details?: { counter: string; preferredTime: string }) => {
         if (!user) {
             alert("Please login to join a queue.");
             // Ideally redirect or show auth modal
@@ -417,7 +417,9 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
                 user_id: user.id, // Link to User
                 token_number: `#${tokenNumber}`,
                 estimated_wait: place.liveWaitTime || 15,
-                status: 'waiting'
+                status: 'waiting',
+                counter: details?.counter,
+                preferred_time: details?.preferredTime
             })
             .select()
             .single();

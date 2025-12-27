@@ -43,7 +43,11 @@ create table if not exists tickets (
   created_at timestamptz default now(),
   -- Feedback fields
   has_feedback_provided boolean default false,
-  user_reported_wait_time int default 0
+  user_reported_wait_time int default 0,
+  
+  -- Form Data
+  counter text,
+  preferred_time text
 );
 
 -- 3. ENABLE REALTIME (Idempotent)
