@@ -158,6 +158,18 @@ using (
 );
 
 
+-- 8. PERFORMANCE INDEXES
+-- Places Indexes
+create index if not exists places_owner_id_idx on places(owner_id);
+create index if not exists places_is_approved_idx on places(is_approved);
+
+-- Tickets Indexes
+create index if not exists tickets_user_id_idx on tickets(user_id);
+create index if not exists tickets_place_id_idx on tickets(place_id);
+create index if not exists tickets_status_idx on tickets(status);
+create index if not exists tickets_created_at_idx on tickets(created_at desc);
+
+
 -- 6. DUMMY DATA SEEDING (Optional)
 insert into places (name, type, address, rating, is_approved, lat, lng, live_wait_time, crowd_level, queue_length, current_serving_token, estimated_turn_time)
 values

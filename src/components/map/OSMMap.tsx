@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Place } from "@/lib/data";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
@@ -82,28 +82,66 @@ interface OSMMapProps {
     onMapDoubleClick?: (lat: number, lng: number) => void;
 }
 
-export default function OSMMap({ places, selectedPlaceId, onSelectPlace, onMapDoubleClick }: OSMMapProps) {
-    const defaultCenter: [number, number] = [28.6328, 77.2197]; // CP Delhi
-    const selectedPlace = places.find(p => p.id === selectedPlaceId);
+// Component to handle efficient marker rendering
+function PlacesLayer({
+    places,
+    onSelectPlace,
+    onMapMoveEnd
+}: {
+    places: Place[],
+    onSelectPlace: (id: string) => void,
+    onMapMoveEnd?: (lat: number, lng: number) => void
+}) {
+    const map = useMap();
+    const [visiblePlaces, setVisiblePlaces] = useState<Place[]>([]);
+
+    // Function to update visible places based on bounds and zoom
+    const updateVisibility = () => {
+        // Fallback: If we have few places, just show them all to avoid visibility bugs
+        if (places.length <= 20) {
+            setVisiblePlaces(places);
+            return;
+        }
+
+        const zoom = map.getZoom();
+        const bounds = map.getBounds();
+
+        // Optimization 1: Hide all if zoomed out too far (World/City view)
+        if (zoom < 13) {
+            setVisiblePlaces([]);
+            return;
+        }
+
+        // Optimization 2: Only show places within current view
+        const inView = places.filter(p =>
+            bounds.contains([p.coordinates.lat, p.coordinates.lng])
+        );
+
+        // Optimization 3: Limit to max 20 to prevent rendering lag
+        setVisiblePlaces(inView.slice(0, 20));
+    };
+
+    // Listen for map movements
+    useMapEvents({
+        moveend: () => {
+            // Notify parent of new center when user stops moving map
+            if (onMapMoveEnd) {
+                const center = map.getCenter();
+                onMapMoveEnd(center.lat, center.lng);
+            }
+            updateVisibility();
+        },
+        zoomend: updateVisibility,
+    });
+
+    // Initial load
+    useEffect(() => {
+        updateVisibility();
+    }, [places]); // Re-run if places data changes (e.g. search)
 
     return (
-        <MapContainer
-            center={defaultCenter}
-            zoom={15}
-            className="w-full h-full z-0"
-            zoomControl={false}
-            doubleClickZoom={!onMapDoubleClick} // Disable zoom if we have a handler
-        >
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            />
-
-            <MapUpdater selectedPlace={selectedPlace} />
-            <MapClickHandler onDoubleClick={onMapDoubleClick} />
-            <LocateUser />
-
-            {places.map((place) => (
+        <>
+            {visiblePlaces.map((place) => (
                 <Marker
                     key={place.id}
                     position={[place.coordinates.lat, place.coordinates.lng]}
@@ -130,6 +168,37 @@ export default function OSMMap({ places, selectedPlaceId, onSelectPlace, onMapDo
                     </Popup>
                 </Marker>
             ))}
+        </>
+    );
+}
+
+export default function OSMMap({ places, selectedPlaceId, onSelectPlace, onMapDoubleClick, onMapMoveEnd }: OSMMapProps & { onMapMoveEnd?: (lat: number, lng: number) => void }) {
+    const defaultCenter: [number, number] = [28.6328, 77.2197]; // CP Delhi
+    const selectedPlace = places.find(p => p.id === selectedPlaceId);
+
+    return (
+        <MapContainer
+            center={defaultCenter}
+            zoom={15}
+            className="w-full h-full z-0"
+            zoomControl={false}
+            doubleClickZoom={!onMapDoubleClick} // Disable zoom if we have a handler
+        >
+            <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            />
+
+            <MapUpdater selectedPlace={selectedPlace} />
+            <MapClickHandler onDoubleClick={onMapDoubleClick} />
+            <LocateUser />
+
+            {/* Optimized Marker Layer */}
+            <PlacesLayer
+                places={places}
+                onSelectPlace={onSelectPlace}
+                onMapMoveEnd={onMapMoveEnd}
+            />
         </MapContainer>
     );
 }

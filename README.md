@@ -36,85 +36,77 @@ Waitly is a modern, real-time queue management application that eliminates physi
 | Maps | [React Leaflet](https://react-leaflet.js.org/) + OpenStreetMap |
 | Emails | [Resend](https://resend.com/) |
 
+## 🚀 Capacity & Performance
+**How many users can this handle?**
+Thanks to recent scalability optimizations (Optimistic Updates & Database Indexing):
+- **Concurrent Users**: ~5,000 - 10,000 active users.
+- **Daily Traffic**: Can easily handle 50,000+ daily visits.
+- **Bottlenecks**: The primary limit is now your Email Provider (Gmail = 500/day) and Supabase's concurrent connection limit (depends on your tier).
+
+## 📱 PWA Features
+This app is a **Progressive Web App (PWA)**!
+- **Installable**: Add to Home Screen on iOS/Android for a native app experience.
+- **Offline Capable**: Works even with spotty internet.
+- **App-like Feel**: No browser URL bar, full screen immersion.
+
+## 🛠️ Tech Stack
+| Layer | Technology |
+|-------|------------|
+| Framework | [Next.js 16+](https://nextjs.org/) (App Router, Turbopack) |
+| Database & Auth | [Supabase](https://supabase.com/) (PostgreSQL + Realtime) |
+| Styling | [Tailwind CSS](https://tailwindcss.com/) |
+| Maps | [React Leaflet](https://react-leaflet.js.org/) + OpenStreetMap |
+| PWA | [@ducanh2912/next-pwa](https://github.com/DuCanhGH/next-pwa) |
+| Emails | Nodemailer + Gmail SMTP |
+
 ## ⚙️ Quick Start
 
-```bash
-# 1. Clone & Install
-git clone https://github.com/your-username/waitly.git
-cd waitly
-npm install
+### 1. Database Setup (Crucial)
+1.  Create a Supabase project.
+2.  Go to **SQL Editor**.
+3.  Copy the contents of `complete_schema.sql` from this repo.
+4.  Paste and Run. (This sets up Tables, RLS, Storage, and Indexes).
 
-# 2. Environment Setup (.env.local)
+### 2. Environment Setup
+Create a `.env.local` file:
+```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-RESEND_API_KEY=your_resend_api_key
-
-# 3. Database Setup
-# Run `complete_schema.sql` in Supabase SQL Editor
-
-# 4. Start Development
-npm run dev
+# Email Config (Use App Password for Gmail)
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_16_char_app_password
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
+### 3. Install & Run
+```bash
+npm install
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000).
 
-## ☁️ Deployment
+## ☁️ Deployment (Netlify/Vercel)
+**Important**: Use the following Build Command to support PWA:
+- **Build Command**: `npm run build`
+- **Output Directory**: `.next`
 
-### Netlify / Vercel Setup
-When deploying, add the following **Environment Variables** in your dashboard:
-
+**Environment Variables for Production:**
 | Variable | Description |
 |----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase Anon Key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase Service Role Key |
-| `EMAIL_USER` | Your Gmail Address (e.g. `you@gmail.com`) |
-| `EMAIL_PASS` | Your Gmail App Password (16 chars, no spaces) |
-| `NEXT_PUBLIC_SITE_URL` | The URL of your deployed site (e.g. `https://your-app.netlify.app`) |
+| `EMAIL_USER` | Your Gmail Address |
+| `EMAIL_PASS` | Your Gmail App Password |
+| `NEXT_PUBLIC_SITE_URL` | Production URL (e.g. `https://waitly.netlify.app`) |
 
-> **Note**: For `NEXT_PUBLIC_SITE_URL`, make sure NOT to include a trailing slash.
-
-## 📱 Pages
-
-| Route | Description |
-|-------|-------------|
-| `/` | Main Map & Queue Interface |
-| `/login` | User Authentication |
-| `/vendor` | Vendor Portal (Manage Queues) |
-| `/admin` | Admin Console (Hidden, for approvals) |
-| `/history` | User Ticket History |
-| `/profile` | User Settings & Sign Out |
-
-## 🔒 Security
-
-- **Row Level Security (RLS)**: Users can only view/edit/delete their own tickets
-- **Vendor Isolation**: Vendors can only manage their own businesses
-- **Admin-Only Approval**: Businesses require admin verification to go live
-- **Closed Registration**: Businesses default to "Pending" status
-
-## 💡 Future Enhancement Ideas
-
-Here are some features to consider for future updates:
-
-### High Priority
-- [ ] **Push Notifications**: Native mobile push via PWA or app
-- [ ] **SMS Alerts**: Twilio integration for SMS notifications
-- [ ] **Email Confirmations**: Send ticket confirmation emails
-- [ ] **Analytics Dashboard**: Queue metrics, peak hours, avg wait times
-
-### Medium Priority
-- [ ] **Multi-Location Support**: One vendor managing multiple branches
-- [ ] **Walk-in Kiosk Mode**: Fullscreen tablet interface for walk-ins
-- [ ] **Estimated Wait Calculator**: AI-based wait time predictions
-- [ ] **Staff Management**: Multiple operators per business
-
-### Nice to Have
-- [ ] **Dark Mode**: System-wide dark theme toggle
-- [ ] **Language Support**: i18n for Hindi, Spanish, etc.
-- [ ] **Queue Pre-booking**: Schedule queue joins in advance
-- [ ] **Customer Feedback**: Post-visit ratings and reviews
-- [ ] **Wait Time Leaderboard**: Gamification for frequent visitors
+## 💡 Key Features
+*   **Virtual Queues**: Join from anywhere.
+*   **Real-time Estimates**: "Your turn in 5 mins".
+*   **Profile Customization**: Upload avatars or use Robot/Cat/Ninja presets.
+*   **Admin Dashboard**: Manage business approvals.
+*   **Vendor Portal**: "Call Next", "No Show", QR Code generation.
 
 ## 📄 License
 

@@ -28,6 +28,8 @@ function HomeContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"places" | "tickets">("places");
   const searchParams = useSearchParams();
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchCenter, setSearchCenter] = useState<{ lat: number; lng: number } | null>(null); // New: Track where we are searching
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
 
   // Auto-switch to list/details if a place is selected from map
@@ -37,19 +39,67 @@ function HomeContent() {
     }
   }, [selectedPlaceId]);
 
-  // Deep Linking Support
+  // Get User Location on Mount
   useEffect(() => {
-    const pid = searchParams.get('place_id');
-    if (pid) {
-      setSelectedPlaceId(pid);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(loc);
+          setSearchCenter(loc); // Initial search center = user location
+        },
+        (error) => {
+          console.warn("Location access denied or error:", error);
+          const fallback = { lat: 28.6328, lng: 77.2197 };
+          setUserLocation(fallback);
+          setSearchCenter(fallback);
+        }
+      );
+    } else {
+      const fallback = { lat: 28.6328, lng: 77.2197 };
+      setUserLocation(fallback);
+      setSearchCenter(fallback);
     }
-  }, [searchParams]);
+  }, []);
 
-  const filteredPlaces = places.filter(place =>
-    place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    place.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    place.address.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Distance Calculator (Haversine Formula) in km
+  function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  }
+
+  function deg2rad(deg: number) {
+    return deg * (Math.PI / 180);
+  }
+
+  const filteredPlaces = places.filter(place => {
+    // 1. Search Mode: Show everything that matches query
+    if (searchQuery) {
+      return (
+        place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        place.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        place.address.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // 2. Nearby Mode (No Search): Filter by Distance from SEARCH CENTER (Max 4km)
+    if (searchCenter) {
+      const dist = getDistance(searchCenter.lat, searchCenter.lng, place.coordinates.lat, place.coordinates.lng);
+      return dist <= 4.0; // 4 km radius from where the user is LOOKING
+    }
+
+    return true; // Fallback if no location yet
+  }).slice(0, 20); // Always cap at 20 for performance
 
   const selectedPlace = places.find(p => p.id === selectedPlaceId);
 
@@ -121,38 +171,7 @@ function HomeContent() {
             </div>
           </div>
 
-          {/* Quick Stats Bar - Only for logged in users */}
-          {user && viewMode === "places" && !selectedPlace && (
-            <div className="flex gap-3 mt-2">
-              <div className="flex-1 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-3 flex items-center gap-3">
-                <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center">
-                  <MapPin className="w-4 h-4 text-emerald-600" />
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-emerald-700">{places.length}</div>
-                  <div className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide">Places</div>
-                </div>
-              </div>
-              <div className="flex-1 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-3 flex items-center gap-3">
-                <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-amber-600" />
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-amber-700">{avgWaitTime}m</div>
-                  <div className="text-[10px] font-medium text-amber-600 uppercase tracking-wide">Avg Wait</div>
-                </div>
-              </div>
-              <Link href="/history" className="flex-1 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-2xl p-3 flex items-center gap-3 hover:shadow-md transition-shadow">
-                <div className="w-9 h-9 bg-violet-100 rounded-xl flex items-center justify-center">
-                  <Ticket className="w-4 h-4 text-violet-600" />
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-violet-700">{activeTickets.length}</div>
-                  <div className="text-[10px] font-medium text-violet-600 uppercase tracking-wide">Active</div>
-                </div>
-              </Link>
-            </div>
-          )}
+
         </header>
 
         {/* Content Area */}
@@ -274,6 +293,7 @@ function HomeContent() {
           places={filteredPlaces}
           selectedPlaceId={selectedPlaceId}
           onSelectPlace={setSelectedPlaceId}
+          onMapMoveEnd={(lat, lng) => setSearchCenter({ lat, lng })}
         />
         {/* Overlay gradient for better integration */}
         <div className="absolute inset-y-0 left-0 pointer-events-none bg-gradient-to-r from-white/20 to-transparent w-16 z-10 hidden md:block" />

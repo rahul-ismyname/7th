@@ -5,6 +5,25 @@ import { Place, PLACES as DEFAULT_PLACES } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 
+// Helper to map DB row to Place object
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapPlaceData = (p: any): Place => ({
+    id: p.id,
+    name: p.name,
+    type: p.type,
+    address: p.address,
+    rating: Number(p.rating),
+    distance: '0.5 km',
+    isApproved: p.is_approved,
+    coordinates: { lat: p.lat, lng: p.lng },
+    crowdLevel: p.crowd_level,
+    liveWaitTime: p.live_wait_time,
+    lastUpdated: p.last_updated ? new Date(p.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+    queueLength: p.queue_length,
+    currentServingToken: p.current_serving_token,
+    estimatedTurnTime: p.estimated_turn_time,
+});
+
 export interface Ticket {
     placeId: string;
     ticketId: string;
@@ -67,25 +86,12 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
                     console.error("Error Hint:", placesError.hint);
                     setPlaces(DEFAULT_PLACES);
                 } else if (placesData && placesData.length > 0) {
+                    console.log("PlacesContext: Loaded DB Places:", placesData.length);
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const mappedPlaces: Place[] = placesData.map((p: any) => ({
-                        id: p.id,
-                        name: p.name,
-                        type: p.type,
-                        address: p.address,
-                        rating: Number(p.rating),
-                        distance: '0.5 km',
-                        isApproved: p.is_approved,
-                        coordinates: { lat: p.lat, lng: p.lng },
-                        crowdLevel: p.crowd_level,
-                        liveWaitTime: p.live_wait_time,
-                        lastUpdated: p.last_updated ? new Date(p.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
-                        queueLength: p.queue_length,
-                        currentServingToken: p.current_serving_token,
-                        estimatedTurnTime: p.estimated_turn_time,
-                    }));
+                    const mappedPlaces: Place[] = placesData.map(mapPlaceData);
                     setPlaces(mappedPlaces);
                 } else {
+                    console.warn("PlacesContext: No DB Places found, using defaults.");
                     setPlaces(DEFAULT_PLACES);
                 }
             } catch (e) {
@@ -110,11 +116,40 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
             })
             .subscribe();
 
-        // Realtime subscription for places
+        // Realtime subscription for places (OPTIMIZED)
         const placesSubscription = supabase
             .channel('public:places')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'places' }, payload => {
-                loadData();
+                // Optimistic Updates: Modify local state directly instead of re-fetching
+                if (payload.eventType === 'INSERT') {
+                    // Only add if approved
+                    if (payload.new.is_approved) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const newPlace = mapPlaceData(payload.new);
+                        setPlaces(prev => [...prev, newPlace]);
+                    }
+                } else if (payload.eventType === 'UPDATE') {
+                    // Handle Approval Change (Hidden -> Visible or Visible -> Hidden)
+                    // Note: We might not get 'old' values for all columns, but 'new' has current state
+                    if (payload.new.is_approved === false) {
+                        // If updated to be unapproved, remove it
+                        setPlaces(prev => prev.filter(p => p.id !== payload.new.id));
+                    } else {
+                        // Normal update or newly approved
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const updatedPlace = mapPlaceData(payload.new);
+                        setPlaces(prev => {
+                            const exists = prev.find(p => p.id === updatedPlace.id);
+                            if (exists) {
+                                return prev.map(p => p.id === updatedPlace.id ? updatedPlace : p);
+                            } else {
+                                return [...prev, updatedPlace];
+                            }
+                        });
+                    }
+                } else if (payload.eventType === 'DELETE') {
+                    setPlaces(prev => prev.filter(p => p.id !== payload.old.id));
+                }
             })
             .subscribe();
 
