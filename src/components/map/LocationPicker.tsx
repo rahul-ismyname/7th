@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -29,8 +29,25 @@ function ClickHandler({ onLocationSelect }: { onLocationSelect: (lat: number, ln
     return null;
 }
 
-export default function LocationPicker({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
-    const [position, setPosition] = useState<[number, number] | null>(null);
+function ViewUpdater({ coords }: { coords: [number, number] | null }) {
+    const map = useMap();
+    useEffect(() => {
+        if (coords) {
+            map.flyTo(coords, 15);
+        }
+    }, [coords, map]);
+    return null;
+}
+
+export default function LocationPicker({ onLocationSelect, coordinates }: { onLocationSelect: (lat: number, lng: number) => void, coordinates?: { lat: number, lng: number } }) {
+    const [position, setPosition] = useState<[number, number] | null>(coordinates ? [coordinates.lat, coordinates.lng] : null);
+
+    // Sync internal state if external props change (e.g. from Auto-Location)
+    useEffect(() => {
+        if (coordinates) {
+            setPosition([coordinates.lat, coordinates.lng]);
+        }
+    }, [coordinates]);
 
     return (
         <MapContainer center={[28.6328, 77.2197]} zoom={11} className="w-full h-full rounded-xl z-0">
@@ -42,6 +59,7 @@ export default function LocationPicker({ onLocationSelect }: { onLocationSelect:
                 setPosition([lat, lng]);
                 onLocationSelect(lat, lng);
             }} />
+            <ViewUpdater coords={position} />
             {position && <Marker position={position} icon={customIcon} />}
         </MapContainer>
     );

@@ -1,7 +1,8 @@
 "use client";
 
 import { Place } from "@/lib/data";
-import { cn } from "@/lib/utils";
+import { cn, calculateDistance } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import {
     ArrowLeft,
     BadgeCheck,
@@ -14,9 +15,10 @@ import {
     Activity,
     AlertCircle
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddWaitTimeModal } from "./AddWaitTimeModal";
 import { JoinQueueModal, JoinQueueFormData } from "./JoinQueueModal";
+import { ReviewFlowModal } from "./ReviewFlowModal";
 import { usePlaces } from "@/context/PlacesContext";
 
 interface PlaceDetailsProps {
@@ -25,17 +27,93 @@ interface PlaceDetailsProps {
 }
 
 export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
-    const { activeTickets, joinQueue, leaveQueue } = usePlaces();
+    const { activeTickets, joinQueue, leaveQueue, submitReview, completeTicket } = usePlaces();
     const [showWaitTimeModal, setShowWaitTimeModal] = useState(false);
     const [showJoinModal, setShowJoinModal] = useState(false);
+    const [showReviewModal, setShowReviewModal] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
 
     // Check if user has a ticket for this place
     const myTicket = activeTickets.find(t => t.placeId === place.id && t.status === 'waiting');
     const hasJoined = !!myTicket;
 
+    // Dynamic Wait Time Logic
+    const [peopleAhead, setPeopleAhead] = useState<number | null>(null);
+
+    // Fetch position in queue for JOINED users
+
+
+
     const handleJoinClick = () => {
-        setShowJoinModal(true);
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setIsJoining(true); // Re-use spinner for location check
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+                const dist = calculateDistance(userLat, userLng, place.coordinates.lat, place.coordinates.lng);
+
+                setIsJoining(false);
+
+                if (dist > 20) {
+                    alert(`You are too far away (${dist.toFixed(1)}km). You must be within 20km to join.`);
+                } else {
+                    setShowJoinModal(true);
+                }
+            },
+            (error) => {
+                setIsJoining(false);
+                console.error("Location error:", error);
+                alert("Location access is required to verify you are nearby. Please enable location services.");
+            }
+        );
+    };
+
+    useEffect(() => {
+        if (!myTicket) return;
+
+        const fetchPosition = async () => {
+            // Count tickets strictly BEFORE my ticket
+            const { count, error } = await supabase
+                .from('tickets')
+                .select('*', { count: 'exact', head: true })
+                .eq('place_id', place.id)
+                .eq('status', 'waiting')
+                .lt('created_at', new Date(myTicket.timestamp).toISOString());
+
+            if (!error && count !== null) {
+                setPeopleAhead(count);
+            }
+        };
+
+        fetchPosition();
+
+        // Optional: Subscription to update position live could go here
+        // For now, fetch on mount/ticket change is MVP sufficient
+    }, [myTicket, place.id]);
+
+    const handleReviewSubmit = async (data: { actualWaitTime?: number; counterUsed?: string }) => {
+        if (!myTicket) return;
+        try {
+            await submitReview(myTicket.ticketId, data);
+            // Modal closes itself
+        } catch (e) {
+            console.error("Failed to submit review", e);
+        }
+    };
+
+    const handleReviewComplete = async () => {
+        if (!myTicket) return;
+        try {
+            await usePlaces().completeTicket(myTicket.ticketId);
+        } catch (e) {
+            console.error("Failed to complete ticket", e);
+        }
     };
 
     const handleConfirmJoin = async (formData: JoinQueueFormData) => {
@@ -53,56 +131,64 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background relative">
-            {/* Header Image Area (Mock) */}
-            <div className="h-32 bg-slate-100 w-full relative group overflow-hidden shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        <div className="flex flex-col h-full bg-white relative">
+            {/* Nav Bar */}
+            <div className="px-5 pt-6 pb-2 shrink-0 flex items-center">
                 <button
                     onClick={onBack}
-                    className="absolute top-4 left-4 p-2 bg-white/90 backdrop-blur-md rounded-full text-slate-700 hover:bg-white transition-colors z-10 shadow-sm"
+                    className="p-2 -ml-2 hover:bg-slate-50 rounded-full text-slate-800 transition-colors"
                 >
-                    <ArrowLeft className="w-5 h-5" />
+                    <ArrowLeft className="w-6 h-6" />
                 </button>
             </div>
 
-            <div className="px-6 -mt-8 relative z-10 flex flex-col flex-1 overflow-y-auto pb-8">
-                {/* Title Card */}
-                <div className="bg-card rounded-2xl shadow-xl border border-border p-5 mb-6 backdrop-blur-xl">
-                    <div className="flex justify-between items-start mb-2">
+            <div className="px-6 flex flex-col flex-1 overflow-y-auto pb-8">
+                {/* Title Section - Fluid, no card */}
+                <div className="mb-8 mt-2">
+                    <div className="flex justify-between items-start mb-3">
                         <div>
-                            <h1 className="text-2xl font-bold flex items-center gap-2 text-foreground">
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2 mb-2">
                                 {place.name}
                                 {place.isApproved && (
-                                    <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-500/10" />
+                                    <BadgeCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
                                 )}
                             </h1>
-                            <div className="flex items-center text-sm text-muted-foreground gap-1 mt-1 font-medium">
-                                <MapPin className="w-3.5 h-3.5" />
+                            <div className="flex items-center text-sm font-bold text-slate-400 gap-1.5">
+                                <MapPin className="w-4 h-4 text-slate-300" />
                                 {place.address}
                             </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                            <div className="bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
-                                ★ {place.rating}
+                        <div className="flex flex-col items-end gap-1">
+                            <div className="bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg text-xs font-black flex items-center gap-1 text-slate-900">
+                                <span>★</span> {place.rating}
                             </div>
-                            <span className="text-xs text-muted-foreground mt-1 font-medium">{place.distance}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{place.distance}</span>
                         </div>
                     </div>
 
-                    <div className="flex gap-2 mt-4">
-                        {place.isApproved ? (
-                            <div className="w-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-semibold px-3 py-2.5 rounded-xl flex items-center justify-center gap-2">
-                                <BadgeCheck className="w-4 h-4" />
-                                Official Partner • Virtual Queue Added
-                            </div>
-                        ) : (
-                            <div className="w-full bg-slate-50 border border-slate-100 text-slate-500 text-xs font-medium px-3 py-2.5 rounded-xl flex items-center justify-center gap-2">
-                                <Info className="w-4 h-4" />
-                                Crowdsourced Data • Live Wait Times
-                            </div>
-                        )}
+                    <div className="flex gap-2">
+                        <div className={cn(
+                            "w-full text-xs font-bold px-4 py-3 rounded-2xl flex items-center justify-center gap-2",
+                            place.isApproved
+                                ? "bg-blue-50 text-blue-600"
+                                : "bg-slate-50 text-slate-500"
+                        )}>
+                            {place.isApproved ? (
+                                <>
+                                    <BadgeCheck className="w-4 h-4" />
+                                    Official Partner • Virtual Queue Available
+                                </>
+                            ) : (
+                                <>
+                                    <Info className="w-4 h-4" />
+                                    Crowdsourced Data • Live Wait Times
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
+
+
 
                 {/* MODE 1: Non-Approved (Information Only) */}
                 {!place.isApproved && (
@@ -184,13 +270,17 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
-                                            <span className="text-muted-foreground font-medium">Current Token</span>
-                                            <span className="font-mono font-bold text-foreground">{place.currentServingToken}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
-                                            <span className="text-muted-foreground font-medium">Your Est. Turn</span>
-                                            <span className="font-bold text-foreground">{place.estimatedTurnTime}</span>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
+                                                <span className="text-muted-foreground font-medium">People ahead of you</span>
+                                                <span className="font-mono font-bold text-foreground">{peopleAhead !== null ? peopleAhead : '...'}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
+                                                <span className="text-muted-foreground font-medium">Your Est. Wait</span>
+                                                <span className="font-bold text-foreground">
+                                                    {peopleAhead !== null ? `~${(peopleAhead + 1) * 5} min` : 'Calculating...'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -237,17 +327,41 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
                                     </div>
                                 </div>
 
+
+
                                 <button
-                                    onClick={() => leaveQueue(place.id)}
+                                    onClick={() => {
+                                        // Trigger review flow instead of direct leave if active
+                                        if (myTicket) {
+                                            setShowReviewModal(true);
+                                        }
+                                    }}
                                     className="text-xs text-rose-500 hover:text-rose-600 font-bold hover:underline transition-colors"
                                 >
-                                    Leave Queue
+                                    Leave Queue / Finish
                                 </button>
                             </div>
                         )}
                     </div>
                 )}
             </div>
-        </div>
+
+            <JoinQueueModal
+                isOpen={showJoinModal}
+                onClose={() => setShowJoinModal(false)}
+                place={place}
+                onConfirm={handleConfirmJoin}
+            />
+
+            <ReviewFlowModal
+                isOpen={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                place={place}
+                onComplete={async () => {
+                    if (myTicket) await completeTicket(myTicket.ticketId);
+                }}
+                onSubmit={handleReviewSubmit}
+            />
+        </div >
     );
 }

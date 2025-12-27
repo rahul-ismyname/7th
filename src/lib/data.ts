@@ -10,6 +10,10 @@ export interface Place {
     isApproved: boolean;
     coordinates: { lat: number; lng: number }; // UPDATED: Real GPS
 
+    // Working Hours
+    openingTime?: string;
+    closingTime?: string;
+
     // For Non-Approved (Mode 1)
     crowdLevel?: CrowdLevel;
     liveWaitTime?: number; // minutes

@@ -29,7 +29,11 @@ create table if not exists places (
   estimated_turn_time text,
   last_updated timestamptz default now(),
   created_at timestamptz default now(), -- Added for sorting
-  owner_id uuid references auth.users(id) -- Added for Vendor features
+  owner_id uuid references auth.users(id), -- Added for Vendor features
+  
+  -- Working Hours
+  opening_time text, -- Format: "HH:mm" (24h)
+  closing_time text  -- Format: "HH:mm" (24h)
 );
 
 -- Tickets Table
@@ -47,8 +51,24 @@ create table if not exists tickets (
   
   -- Form Data
   counter text,
-  preferred_time text
+  preferred_time text,
+  preferred_date text,
+  
+  -- Review Data
+  counter_used text,
+  actual_wait_time int
 );
+
+-- Idempotent updates for existing tables
+alter table tickets add column if not exists counter text;
+alter table tickets add column if not exists preferred_time text;
+alter table tickets add column if not exists preferred_date text;
+alter table tickets add column if not exists counter_used text;
+alter table tickets add column if not exists actual_wait_time int;
+
+-- Idempotent updates for places
+alter table places add column if not exists opening_time text;
+alter table places add column if not exists closing_time text;
 
 -- 3. ENABLE REALTIME (Idempotent)
 do $$
@@ -94,6 +114,16 @@ create policy "Owners can update their places"
 create policy "Owners can delete their places"
   on places for delete
   using (auth.uid() = owner_id);
+
+-- Policy 5: Super Admins (Any Auth User) can DELETE places
+create policy "Admins can delete places"
+  on places for delete
+  using (auth.role() = 'authenticated');
+
+-- Policy 6: Super Admins (Any Auth User) can UPDATE places (Approve/Reject)
+create policy "Admins can update places"
+  on places for update
+  using (auth.role() = 'authenticated');
 
 
 -- B. TICKETS POLICIES

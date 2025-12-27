@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Compass, KeyRound } from "lucide-react";
+import { ArrowLeft, Loader2, Compass, KeyRound, Store } from "lucide-react";
 import Link from "next/link";
 import { signupUser, requestPasswordReset } from "@/actions/auth";
 
@@ -203,6 +203,14 @@ export default function LoginPage() {
                             </div>
                         )}
                     </form>
+                </div>
+                <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+                    <p className="text-slate-400 font-medium text-xs uppercase tracking-widest mb-3">Partner Access</p>
+                    <Link href="/vendor/login" className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-full text-slate-600 font-bold text-sm transition-all hover:pr-6 group">
+                        <Store className="w-4 h-4 text-indigo-500" />
+                        <span>Business & Vendor Login</span>
+                        <ArrowLeft className="w-4 h-4 rotate-180 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                    </Link>
                 </div>
             </div>
 

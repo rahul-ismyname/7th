@@ -42,12 +42,14 @@ interface PlacesContextType {
     addPlace: (place: Place) => void;
     removePlace: (id: string) => void;
     resetPlaces: () => void;
-    joinQueue: (placeId: string, details?: { counter: string; preferredTime: string }) => void;
+    joinQueue: (placeId: string, details?: { counter: string; preferredTime: string; preferredDate: string }) => void;
     leaveQueue: (placeId: string) => void;
     updateTicketStatus: (ticketId: string, status: Ticket['status']) => Promise<void>;
     callNextTicket: (placeId: string, tokenNumber: string) => Promise<void>;
     markNoShow: (ticketId: string) => Promise<void>;
     toggleQueueStatus: (placeId: string, isOpen: boolean) => Promise<void>;
+    completeTicket: (ticketId: string) => Promise<void>;
+    submitReview: (ticketId: string, data: { actualWaitTime?: number; counterUsed?: string }) => Promise<void>;
     refreshHistory: () => void;
     clearHistory: () => Promise<void>;
     signOut: () => Promise<void>;
@@ -310,16 +312,57 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
 
         if (error) {
             console.error("Error marking no-show:", error);
-            alert("Failed to mark ticket as no-show");
+            return;
+        }
+
+        setActiveTickets(prev => prev.filter(t => t.ticketId !== ticketId));
+    };
+
+    const completeTicket = async (ticketId: string) => {
+        const { error } = await supabase
+            .from('tickets')
+            .update({ status: 'completed' })
+            .eq('id', ticketId);
+
+        if (error) {
+            console.error("Error completing ticket:", error);
+            throw error;
+        }
+
+        // Optimistic update
+        const ticket = activeTickets.find(t => t.ticketId === ticketId);
+        if (ticket) {
+            setActiveTickets(prev => prev.filter(t => t.ticketId !== ticketId));
         }
     };
 
-    const toggleQueueStatus = async (placeId: string, isApproved: boolean) => {
+    const submitReview = async (ticketId: string, data: { actualWaitTime?: number; counterUsed?: string }) => {
+        const updateData: any = {
+            has_feedback_provided: true
+        };
+
+        if (data.actualWaitTime) updateData.actual_wait_time = data.actualWaitTime;
+        if (data.counterUsed) updateData.counter_used = data.counterUsed;
+
+        // Note: Status is already 'completed' by completeTicket call
+
+        const { error } = await supabase
+            .from('tickets')
+            .update(updateData)
+            .eq('id', ticketId);
+
+        if (error) {
+            console.error("Error submitting review:", error);
+            throw error;
+        }
+    };
+
+    const toggleQueueStatus = async (placeId: string, isOpen: boolean) => {
         // We use is_approved to mean "Open/Active". 
         // If false, it means "Closed/Offline" in our simple logic.
         const { error } = await supabase
             .from('places')
-            .update({ is_approved: isApproved })
+            .update({ is_approved: isOpen })
             .eq('id', placeId);
 
         if (error) {
@@ -327,7 +370,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
             alert("Failed to update queue status");
         } else {
             // Optimistic or wait for realtime
-            alert(isApproved ? "Queue is now OPEN" : "Queue is now CLOSED");
+            alert(isOpen ? "Queue is now OPEN" : "Queue is now CLOSED");
         }
     };
 
@@ -391,7 +434,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         setActiveTickets([]);
     };
 
-    const joinQueue = async (placeId: string, details?: { counter: string; preferredTime: string }) => {
+    const joinQueue = async (placeId: string, details?: { counter: string; preferredTime: string; preferredDate: string }) => {
         if (!user) {
             alert("Please login to join a queue.");
             // Ideally redirect or show auth modal
@@ -419,7 +462,8 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
                 estimated_wait: place.liveWaitTime || 15,
                 status: 'waiting',
                 counter: details?.counter,
-                preferred_time: details?.preferredTime
+                preferred_time: details?.preferredTime,
+                preferred_date: details?.preferredDate
             })
             .select()
             .single();
@@ -494,10 +538,12 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
             updateTicketStatus,
             callNextTicket,
             markNoShow,
+            completeTicket,
+            submitReview,
             toggleQueueStatus,
             clearHistory,
             signOut: async () => { await supabase.auth.signOut(); },
-            refreshHistory: () => user && fetchUserTickets(user.id)
+            refreshHistory
         }}>
             {children}
         </PlacesContext.Provider>

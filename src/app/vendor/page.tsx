@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { usePlaces, Ticket } from "@/context/PlacesContext";
 import { supabase } from "@/lib/supabase";
 import {
@@ -15,7 +15,8 @@ import {
     QrCode,
     ArrowLeft,
     Users,
-    Sparkles
+    Sparkles,
+    MapPin
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
@@ -38,7 +39,22 @@ export default function VendorPage() {
         name: "", type: "", address: ""
     });
 
-    const myPlaces = vendorPlaces;
+    // Local state for editing hours
+    const [hours, setHours] = useState({ open: "09:00", close: "17:00" });
+    const [isSavingHours, setIsSavingHours] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
+
+    const [greeting, setGreeting] = useState("Good morning");
+
+    // Time-based greeting
+    useEffect(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) setGreeting("Good morning");
+        else if (hour < 18) setGreeting("Good afternoon");
+        else setGreeting("Good evening");
+    }, []);
+
+    const myPlaces = useMemo(() => vendorPlaces, [vendorPlaces]);
 
     useEffect(() => {
         if (!selectedPlaceId) return;
@@ -77,6 +93,45 @@ export default function VendorPage() {
 
         return () => { supabase.removeChannel(channel); };
     }, [selectedPlaceId]);
+
+    // Update local state when selected place changes
+    useEffect(() => {
+        if (selectedPlaceId) {
+            const place = vendorPlaces.find(p => p.id === selectedPlaceId);
+            if (place) {
+                setHours({
+                    open: place.openingTime || "09:00",
+                    close: place.closingTime || "17:00"
+                });
+            }
+        }
+    }, [selectedPlaceId, vendorPlaces]);
+
+    const handleSaveHours = async () => {
+        if (!selectedPlaceId) return;
+        setIsSavingHours(true);
+
+        const { error } = await supabase
+            .from('places')
+            .update({
+                opening_time: hours.open,
+                closing_time: hours.close
+            })
+            .eq('id', selectedPlaceId);
+
+        if (error) {
+            console.error("Error updating hours:", error);
+            alert("Failed to update working hours");
+        } else {
+            // Optimistic update mechanism from Context should eventually reflect this,
+            // or we might need to manually trigger a refresh if realtime isn't perfect for this field.
+            // For now, assume context refresh or page reload.
+            // Actually, context `places` might need manual update if realtime doesn't cover it.
+            // But let's rely on standard flow.
+            alert("Working hours updated!");
+        }
+        setIsSavingHours(false);
+    };
 
     if (!user) {
         return (
@@ -119,6 +174,33 @@ export default function VendorPage() {
     };
 
     const [deleteLoading, setDeleteLoading] = useState(false);
+
+    const handleGetLocation = () => {
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setIsLocating(true);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setNewPlace(prev => ({
+                    ...prev,
+                    coordinates: {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    }
+                }));
+                setIsLocating(false);
+            },
+            (error) => {
+                console.error("Location error:", error);
+                alert("Unable to retrieve your location. Please check your permissions.");
+                setIsLocating(false);
+            }
+        );
+    };
 
     const handleDeleteBusiness = async () => {
         if (!selectedPlaceId) return;
@@ -175,7 +257,7 @@ export default function VendorPage() {
     const selectedPlace = myPlaces.find(p => p.id === selectedPlaceId);
 
     return (
-        <div className="min-h-screen bg-slate-100 flex font-sans text-slate-900">
+        <div className="min-h-screen bg-white flex font-sans text-slate-900">
             {/* QR Modal */}
             {showQR && selectedPlaceId && (
                 <>
@@ -233,33 +315,40 @@ export default function VendorPage() {
             `}</style>
 
             {/* Sidebar */}
-            <div className="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col">
-                <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-indigo-600 to-violet-600">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+            <div className="w-72 bg-slate-50/50 border-r border-slate-100 hidden md:flex flex-col">
+                <div className="p-6">
+                    <div className="flex items-center gap-3 text-slate-900 mb-8">
+                        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 rotate-3">
                             <LayoutDashboard className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="font-bold text-white text-lg">Vendor Portal</h1>
-                            <p className="text-xs text-white/70">Manage your queues</p>
+                            <h1 className="font-bold text-lg leading-tight">Vendor<br /><span className="text-slate-400 font-medium text-xs">Portal</span></h1>
                         </div>
                     </div>
-                </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    <div className="mb-6 px-1">
+                        <h2 className="text-xl font-bold text-slate-900 mb-1">{greeting}! 👋</h2>
+                        <p className="text-xs text-slate-500 font-medium">Ready to serve today?</p>
+                    </div>
+
                     <button
                         onClick={() => { setIsCreating(true); setSelectedPlaceId(null); }}
-                        className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 mb-4"
+                        className="w-full py-3.5 bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 text-slate-600 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md group"
                     >
-                        <Plus className="w-5 h-5" /> Add Business
+                        <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" /> Add Business
                     </button>
+                </div>
 
-                    <div className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">My Businesses</div>
+                <div className="flex-1 overflow-y-auto px-4 space-y-1">
+                    <div className="px-2 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">My Businesses</div>
 
                     {myPlaces.length === 0 && !isCreating && (
-                        <div className="px-3 py-8 text-center">
-                            <Store className="w-10 h-10 text-slate-200 mx-auto mb-2" />
-                            <p className="text-sm text-slate-400">No businesses yet</p>
+                        <div className="px-3 py-12 text-center bg-white rounded-3xl border border-slate-100 border-dashed mx-2">
+                            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <Store className="w-6 h-6 text-slate-300" />
+                            </div>
+                            <p className="text-sm font-bold text-slate-500 mb-1">No businesses yet</p>
+                            <p className="text-xs text-slate-400 max-w-[150px] mx-auto">Add your first location to start queuing.</p>
                         </div>
                     )}
 
@@ -268,8 +357,10 @@ export default function VendorPage() {
                             key={place.id}
                             onClick={() => { setSelectedPlaceId(place.id); setIsCreating(false); }}
                             className={cn(
-                                "w-full text-left px-4 py-3 rounded-xl transition-all",
-                                selectedPlaceId === place.id ? 'bg-indigo-50 border-2 border-indigo-200' : 'hover:bg-slate-50 border-2 border-transparent'
+                                "w-full text-left px-4 py-3 rounded-xl transition-all border",
+                                selectedPlaceId === place.id
+                                    ? 'bg-white border-slate-200 shadow-sm'
+                                    : 'border-transparent hover:bg-slate-100 text-slate-500'
                             )}
                         >
                             <div className="flex items-center gap-3">
@@ -280,7 +371,7 @@ export default function VendorPage() {
                                     {place.name[0]}
                                 </div>
                                 <div className="min-w-0">
-                                    <span className="font-bold text-slate-800 block truncate">{place.name}</span>
+                                    <span className={cn("font-bold block truncate", selectedPlaceId === place.id ? "text-slate-900" : "text-slate-600")}>{place.name}</span>
                                     <span className="text-xs text-slate-400">{place.isApproved ? '● Live' : '○ Pending'}</span>
                                 </div>
                             </div>
@@ -289,7 +380,7 @@ export default function VendorPage() {
                 </div>
 
                 <div className="p-4 border-t border-slate-100">
-                    <Link href="/" className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">
+                    <Link href="/" className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-indigo-600 transition-colors px-2">
                         <ArrowLeft className="w-4 h-4" /> Back to App
                     </Link>
                 </div>
@@ -348,9 +439,32 @@ export default function VendorPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">Location</label>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="block text-sm font-bold text-slate-700">Location</label>
+                                        <button
+                                            type="button"
+                                            onClick={handleGetLocation}
+                                            disabled={isLocating}
+                                            className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
+                                        >
+                                            {isLocating ? (
+                                                <>
+                                                    <div className="w-3 h-3 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                                                    Locating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <MapPin className="w-3.5 h-3.5" />
+                                                    Use My Current Location
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                     <div className="h-64 rounded-xl overflow-hidden border-2 border-slate-100 mb-3 relative">
-                                        <LocationPicker onLocationSelect={(lat, lng) => setNewPlace(prev => ({ ...prev, coordinates: { lat, lng } }))} />
+                                        <LocationPicker
+                                            onLocationSelect={(lat, lng) => setNewPlace(prev => ({ ...prev, coordinates: { lat, lng } }))}
+                                            coordinates={newPlace.coordinates}
+                                        />
                                         {!newPlace.coordinates && (
                                             <div className="absolute inset-0 bg-slate-900/5 flex items-center justify-center pointer-events-none">
                                                 <span className="bg-white px-4 py-2 rounded-xl text-sm font-bold shadow-md">📍 Click map to set location</span>
@@ -378,21 +492,23 @@ export default function VendorPage() {
                         </div>
                     </div>
                 ) : selectedPlaceId && selectedPlace ? (
-                    <div className="flex-1 p-6 md:p-10 overflow-y-auto bg-slate-50">
-                        <div className="max-w-2xl mx-auto">
+                    <div className="flex-1 p-6 md:p-12 overflow-y-auto bg-white">
+                        <div className="max-w-4xl mx-auto">
                             {/* Header */}
-                            <header className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-slate-100 pb-8">
                                 <div>
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h1 className="text-2xl font-bold text-slate-900">{selectedPlace.name}</h1>
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">{selectedPlace.name}</h1>
                                         <span className={cn(
-                                            "px-3 py-1 text-xs font-bold rounded-full",
-                                            selectedPlace.isApproved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                                            "px-3 py-1 text-xs font-bold rounded-full border",
+                                            selectedPlace.isApproved
+                                                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                                : "bg-amber-50 text-amber-600 border-amber-100"
                                         )}>
                                             {selectedPlace.isApproved ? '● Live' : '○ Pending'}
                                         </span>
                                     </div>
-                                    <p className="text-slate-500 text-sm">{activeQueue.length} in queue • ~{activeQueue.length * 5}m wait</p>
+                                    <p className="text-slate-500 font-medium text-lg">{activeQueue.length} tickets in queue • ~{activeQueue.length * 5} min wait</p>
                                     <div className="mt-2 flex items-center gap-2">
                                         <span className="text-xs text-slate-400 font-medium">Business ID:</span>
                                         <code
@@ -417,6 +533,40 @@ export default function VendorPage() {
                                 </div>
                             </header>
 
+                            {/* Working Hours Settings */}
+                            <div className="mb-12">
+                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <Clock className="w-4 h-4" /> Operating Hours
+                                </h3>
+                                <div className="flex items-end gap-4 p-1">
+                                    <div className="flex-1">
+                                        <label className="text-xs font-bold text-slate-500 mb-2 block">Opening Time</label>
+                                        <input
+                                            type="time"
+                                            value={hours.open}
+                                            onChange={e => setHours(prev => ({ ...prev, open: e.target.value }))}
+                                            className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="text-xs font-bold text-slate-500 mb-2 block">Closing Time</label>
+                                        <input
+                                            type="time"
+                                            value={hours.close}
+                                            onChange={e => setHours(prev => ({ ...prev, close: e.target.value }))}
+                                            className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleSaveHours}
+                                        disabled={isSavingHours}
+                                        className="px-8 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50"
+                                    >
+                                        {isSavingHours ? "..." : "Save"}
+                                    </button>
+                                </div>
+                            </div>
+
                             {!selectedPlace.isApproved && (
                                 <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 text-sm">
                                     <Clock className="w-5 h-5 shrink-0" />
@@ -425,23 +575,28 @@ export default function VendorPage() {
                             )}
 
                             {/* Current Serving Card */}
-                            <div className="bg-white rounded-3xl p-8 shadow-lg border border-slate-100 text-center mb-6">
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Now Serving</p>
-                                <div className="text-7xl md:text-8xl font-black text-slate-900 mb-6">
+                            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-center mb-8 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+                                    <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-indigo-500 blur-[100px] rounded-full" />
+                                    <div className="absolute bottom-[-50%] right-[-50%] w-full h-full bg-fuchsia-500 blur-[100px] rounded-full" />
+                                </div>
+
+                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 relative z-10">Now Serving</p>
+                                <div className="text-8xl md:text-9xl font-black text-white mb-8 tracking-tighter relative z-10">
                                     {currentlyServing.length > 0 ? currentlyServing[0].tokenNumber : "--"}
                                 </div>
 
                                 {currentlyServing.length > 0 && (
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto relative z-10">
                                         <button
                                             onClick={async () => await updateTicketStatus(currentlyServing[0].ticketId, 'completed')}
-                                            className="py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl font-bold text-lg shadow-lg shadow-emerald-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                            className="py-4 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2"
                                         >
                                             <CheckCircle2 className="w-6 h-6" /> Done
                                         </button>
                                         <button
                                             onClick={async () => await updateTicketStatus(currentlyServing[0].ticketId, 'cancelled')}
-                                            className="py-4 bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                                            className="py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 backdrop-blur-sm"
                                         >
                                             <XCircle className="w-5 h-5" /> No Show
                                         </button>
@@ -495,14 +650,20 @@ export default function VendorPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-slate-300 p-8">
-                        <div className="w-24 h-24 bg-slate-100 rounded-3xl flex items-center justify-center mb-6">
-                            <Store className="w-12 h-12 text-slate-300" />
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white">
+                        <div className="w-24 h-24 bg-indigo-50 rounded-[2rem] flex items-center justify-center mb-6 rotate-6 animate-in zoom-in duration-500 shadow-xl shadow-indigo-100">
+                            <LayoutDashboard className="w-10 h-10 text-indigo-500" />
                         </div>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Select a Business</h2>
-                        <p className="max-w-md text-center text-slate-500">
-                            Choose a business from the sidebar to manage its queue, or add a new one.
+                        <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Welcome to your Dashboard</h2>
+                        <p className="text-slate-500 max-w-md mx-auto mb-8 text-lg">
+                            Select a business from the sidebar to manage its queue, or create a new one to get started.
                         </p>
+                        <button
+                            onClick={() => { setIsCreating(true); setSelectedPlaceId(null); }}
+                            className="px-8 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-black transition-all flex items-center gap-3 shadow-xl hover:shadow-2xl hover:-translate-y-1"
+                        >
+                            <Plus className="w-5 h-5" /> Create New Business
+                        </button>
                     </div>
                 )}
             </div>

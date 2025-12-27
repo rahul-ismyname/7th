@@ -264,24 +264,7 @@ function HomeContent() {
                 </div>
               )}
 
-              {/* For Business Link */}
-              <div className="p-5 mt-auto border-t border-slate-100">
-                <Link
-                  href="/vendor"
-                  className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-200 group-hover:bg-indigo-100 rounded-xl flex items-center justify-center transition-colors">
-                      <Store className="w-5 h-5 text-slate-500 group-hover:text-indigo-600 transition-colors" />
-                    </div>
-                    <div>
-                      <div className="font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">For Business</div>
-                      <div className="text-xs text-slate-500">Manage your queues</div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
-                </Link>
-              </div>
+
             </div>
           )}
         </div>
