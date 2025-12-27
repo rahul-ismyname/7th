@@ -59,6 +59,22 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
 
+## ☁️ Deployment
+
+### Netlify / Vercel Setup
+When deploying, add the following **Environment Variables** in your dashboard:
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase Anon Key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase Service Role Key |
+| `EMAIL_USER` | Your Gmail Address (e.g. `you@gmail.com`) |
+| `EMAIL_PASS` | Your Gmail App Password (16 chars, no spaces) |
+| `NEXT_PUBLIC_SITE_URL` | The URL of your deployed site (e.g. `https://your-app.netlify.app`) |
+
+> **Note**: For `NEXT_PUBLIC_SITE_URL`, make sure NOT to include a trailing slash.
+
 ## 📱 Pages
 
 | Route | Description |
