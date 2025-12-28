@@ -7,13 +7,17 @@ export async function signupUser(formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
+    const role = formData.get('role') as string || 'user'; // Default to user if not specified
+
+    // Validate role to prevent arbitrary role assignment if we had admin roles
+    const safeRole = ['user', 'vendor'].includes(role) ? role : 'user';
+
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
         console.error("Missing Env Vars for Admin Client");
         return { error: "Server Configuration Error: Missing URLs/Keys" };
     }
 
     // Initialize Admin Client (Bypasses RLS, can manage users)
-    // Init here to avoid module-level crashes if keys are missing
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -28,13 +32,12 @@ export async function signupUser(formData: FormData) {
     if (!email || !password) return { error: "Email and password required" };
 
     try {
-        // 1. Create User (Admin API prevents default Supabase email if we do it right? 
-        // Actually, createUser doesn't trigger emails by default usually)
+        // 1. Create User
         const { data: user, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
             email_confirm: false, // User is NOT verified yet
-            user_metadata: { role: 'user' }
+            user_metadata: { role: safeRole }
         });
 
         if (createError) {

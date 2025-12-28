@@ -34,6 +34,7 @@ export default function VendorLoginPage() {
                 const formData = new FormData();
                 formData.append('email', email);
                 formData.append('password', password);
+                formData.append('role', 'vendor'); // Explicitly request vendor role
 
                 const result = await signupUser(formData);
 
@@ -45,7 +46,7 @@ export default function VendorLoginPage() {
                     setPassword("");
                 }
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
@@ -53,6 +54,14 @@ export default function VendorLoginPage() {
                 if (error) {
                     setMessage(error.message);
                 } else {
+                    // Role Check Security Barrier
+                    const role = data.user?.user_metadata?.role;
+                    if (role !== 'vendor') {
+                        await supabase.auth.signOut();
+                        setMessage("Access Denied: This account is not a business account.");
+                        return;
+                    }
+
                     setMessage("Success! Taking you to your dashboard...");
                     router.push("/vendor");
                     router.refresh();
