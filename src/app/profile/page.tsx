@@ -147,6 +147,12 @@ export default function ProfilePage() {
         }
     };
 
+    const handleContactSupport = () => {
+        navigator.clipboard.writeText("waity2022@gmail.com");
+        setMessage({ type: 'success', text: "Support email copied to clipboard!" });
+        window.location.href = "mailto:waity2022@gmail.com";
+    };
+
     if (!user) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -400,10 +406,14 @@ export default function ProfilePage() {
                             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                                 <div>
                                     <h3 className="text-2xl font-black mb-2">Need Help?</h3>
-                                    <p className="text-indigo-100 font-medium">Have an issue with a recent visit?</p>
+                                    <p className="text-indigo-100 font-medium mb-1">Have an issue with a recent visit?</p>
+                                    <p className="text-sm text-indigo-200 font-mono select-all">waity2022@gmail.com</p>
                                 </div>
-                                <button className="px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl shadow-lg hover:bg-indigo-50 transition-colors whitespace-nowrap">
-                                    Contact Support
+                                <button
+                                    onClick={handleContactSupport}
+                                    className="px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl shadow-lg hover:bg-indigo-50 transition-colors whitespace-nowrap flex items-center gap-2"
+                                >
+                                    <Mail className="w-5 h-5" /> Contact Support
                                 </button>
                             </div>
                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
