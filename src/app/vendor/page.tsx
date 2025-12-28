@@ -64,7 +64,200 @@ export default function VendorPage() {
         setMobileMenuOpen(false);
     }, [selectedPlaceId, isCreating]);
 
-    // ... (rest of logic)
+    useEffect(() => {
+        if (!selectedPlaceId) return;
+
+        const fetchTickets = async () => {
+            const { data } = await supabase
+                .from('tickets')
+                .select('*')
+                .eq('place_id', selectedPlaceId)
+                .order('created_at', { ascending: true });
+
+            if (data) {
+                const mapped: Ticket[] = data.map((t: any) => ({
+                    placeId: t.place_id,
+                    ticketId: t.id,
+                    tokenNumber: t.token_number,
+                    estimatedWait: t.estimated_wait,
+                    timestamp: new Date(t.created_at).getTime(),
+                    status: t.status
+                }));
+                setVendorTickets(mapped);
+            }
+        };
+
+        fetchTickets();
+
+        const channel = supabase
+            .channel(`vendor_tickets_${selectedPlaceId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'tickets',
+                filter: `place_id=eq.${selectedPlaceId}`
+            }, () => fetchTickets())
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [selectedPlaceId]);
+
+    // Update local state when selected place changes
+    useEffect(() => {
+        if (selectedPlaceId) {
+            const place = vendorPlaces.find(p => p.id === selectedPlaceId);
+            if (place) {
+                setHours({
+                    open: place.openingTime || "09:00",
+                    close: place.closingTime || "17:00"
+                });
+            }
+        }
+    }, [selectedPlaceId, vendorPlaces]);
+
+    const handleSaveHours = async () => {
+        if (!selectedPlaceId) return;
+        setIsSavingHours(true);
+
+        const { error } = await supabase
+            .from('places')
+            .update({
+                opening_time: hours.open,
+                closing_time: hours.close
+            })
+            .eq('id', selectedPlaceId);
+
+        if (error) {
+            console.error("Error updating hours:", error);
+            alert("Failed to update working hours");
+        } else {
+            alert("Working hours updated!");
+        }
+        setIsSavingHours(false);
+    };
+
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+                <div className="text-center bg-white rounded-3xl p-10 shadow-xl max-w-sm">
+                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <Store className="w-8 h-8 text-white" />
+                    </div>
+                    <h1 className="text-2xl font-bold mb-2">Vendor Portal</h1>
+                    <p className="text-slate-500 mb-6">Log in to manage your business queues</p>
+                    <Link href="/login" className="block w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold hover:shadow-lg transition-all">
+                        Log In to Continue
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    const handleCreateBusiness = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newPlace.coordinates) {
+            alert("Please select a location on the map.");
+            return;
+        }
+        addPlace({
+            id: "",
+            name: newPlace.name,
+            type: newPlace.type,
+            address: newPlace.address,
+            rating: 5.0,
+            isApproved: false,
+            distance: "0 km",
+            liveWaitTime: 0,
+            crowdLevel: 'Low',
+            queueLength: 0,
+            coordinates: newPlace.coordinates
+        });
+        setIsCreating(false);
+        setNewPlace({ name: "", type: "", address: "" });
+    };
+
+    const [deleteLoading, setDeleteLoading] = useState(false);
+
+    const handleGetLocation = () => {
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setIsLocating(true);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setNewPlace(prev => ({
+                    ...prev,
+                    coordinates: {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    }
+                }));
+                setIsLocating(false);
+            },
+            (error) => {
+                console.error("Location error:", error);
+                alert("Unable to retrieve your location. Please check your permissions.");
+                setIsLocating(false);
+            }
+        );
+    };
+
+    const handleDeleteBusiness = async () => {
+        if (!selectedPlaceId) return;
+        const place = myPlaces.find(p => p.id === selectedPlaceId);
+        if (!place) return;
+
+        // If NOT approved, allow direct deletion
+        if (!place.isApproved) {
+            if (confirm("Delete this unapproved business?")) {
+                await removePlace(selectedPlaceId);
+                setSelectedPlaceId(null);
+            }
+            return;
+        }
+
+        // If approved, require email confirmation
+        if (!user?.email) {
+            alert("Unable to verify your email. Please try again.");
+            return;
+        }
+
+        if (!confirm("This is an approved business. A confirmation email will be sent to verify deletion. Continue?")) {
+            return;
+        }
+
+        setDeleteLoading(true);
+
+        // Import dynamically to avoid issues
+        const { requestBusinessDeletion } = await import("@/actions/business");
+        const result = await requestBusinessDeletion(selectedPlaceId, user.email, place.name);
+
+        setDeleteLoading(false);
+
+        if (result.success) {
+            alert("📧 Confirmation email sent! Check your inbox and click the link to confirm deletion.");
+        } else {
+            alert("Failed to send confirmation email. Please try again.");
+        }
+    };
+
+    const activeQueue = vendorTickets.filter(t => t.status === 'waiting');
+    const currentlyServing = vendorTickets.filter(t => t.status === 'serving');
+    const nextTicket = activeQueue[0];
+
+    const onCallNext = async () => {
+        if (!nextTicket) return;
+        for (const t of currentlyServing) {
+            await updateTicketStatus(t.ticketId, 'completed');
+        }
+        await updateTicketStatus(nextTicket.ticketId, 'serving');
+        await callNextTicket(selectedPlaceId!, nextTicket.tokenNumber);
+    };
+
+    const selectedPlace = myPlaces.find(p => p.id === selectedPlaceId);
 
     return (
         <div className="min-h-screen bg-white flex font-sans text-slate-900 overflow-hidden relative">
