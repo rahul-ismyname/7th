@@ -42,7 +42,7 @@ export default function LoginPage() {
                 if (result.error) {
                     setMessage(result.error);
                 } else {
-                    setMessage("Account created! Please verify your email via the link sent to your inbox.");
+                    setMessage(result.message || "Action successful. Check your email.");
                     setEmail("");
                     setPassword("");
                 }
@@ -89,9 +89,9 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen w-full flex bg-[#FDFCFD] relative overflow-hidden font-sans selection:bg-indigo-100 text-slate-900">
+        <div className="h-screen w-full flex bg-[#FDFCFD] relative overflow-hidden font-sans selection:bg-indigo-100 text-slate-900">
             {/* LEFT SIDE - FORM SECTION */}
-            <div className="w-full lg:w-[45%] xl:w-[40%] relative z-20 flex flex-col p-8 md:p-16 lg:p-20 bg-gradient-to-br from-indigo-50/80 via-white/90 to-rose-50/80 backdrop-blur-xl border-r border-white/50 shadow-[20px_0_40px_rgba(0,0,0,0.02)]">
+            <div className="w-full lg:w-[45%] xl:w-[40%] relative z-20 flex flex-col p-6 md:p-10 lg:p-12 bg-gradient-to-br from-indigo-50/80 via-white/90 to-rose-50/80 backdrop-blur-xl border-r border-white/50 shadow-[20px_0_40px_rgba(0,0,0,0.02)] h-full justify-between">
 
                 {/* Decorative background elements */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
@@ -100,16 +100,16 @@ export default function LoginPage() {
                 </div>
 
                 {/* Header */}
-                <div className="flex justify-between items-center mb-16">
+                <div className="flex justify-between items-center">
                     <Link href="/" className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors group">
                         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back
                     </Link>
                 </div>
 
                 {/* Form */}
-                <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full animate-in slide-in-from-left-4 duration-700 fade-in fill-mode-both">
+                <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full animate-in slide-in-from-left-4 duration-500 fade-in fill-mode-both">
 
-                    <div className="mb-10 relative">
+                    <div className="mb-6 relative">
                         <div className="relative w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-indigo-500/20 rotate-3 transition-transform duration-500 hover:rotate-6 hover:scale-105 cursor-default">
                             {mode === "forgot" ? <KeyRound className="w-8 h-8" /> : <Compass className="w-8 h-8" />}
                         </div>
@@ -189,7 +189,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className={`w-full bg-gradient-to-r ${mode === 'forgot' ? 'from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600' : 'from-slate-900 to-slate-800 hover:from-black hover:to-slate-900'} text-white font-bold py-5 rounded-2xl transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-lg tracking-tight shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 active:scale-[0.98] mt-4 group/btn relative overflow-hidden`}
+                            className={`w-full bg-gradient-to-r ${mode === 'forgot' ? 'from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600' : 'from-slate-900 to-slate-800 hover:from-black hover:to-slate-900'} text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-base tracking-tight shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 active:scale-[0.98] mt-4 group/btn relative overflow-hidden`}
                         >
                             <span className="relative z-10 flex items-center gap-3">
                                 {getButtonText()}
@@ -204,7 +204,7 @@ export default function LoginPage() {
                         )}
                     </form>
                 </div>
-                <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+                <div className="mt-4 text-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
                     <p className="text-slate-400 font-medium text-xs uppercase tracking-widest mb-3">Partner Access</p>
                     <Link href="/vendor/login" className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-full text-slate-600 font-bold text-sm transition-all hover:pr-6 group">
                         <Store className="w-4 h-4 text-indigo-500" />
@@ -224,7 +224,7 @@ export default function LoginPage() {
                         Step 1106 has lines 1-205. Lines 153-194 contain the SVG art. 
                         I will include it below to ensure no regression.
                      */}
-                    <div className="relative w-[750px] h-[750px] rounded-full bg-gradient-to-tr from-indigo-50 via-white to-pink-50 shadow-2xl flex items-center justify-center animate-[float_10s_ease-in-out_infinite] will-change-transform">
+                    <div className="relative w-[750px] h-[750px] rounded-full bg-gradient-to-tr from-indigo-50 via-white to-pink-50 shadow-2xl flex items-center justify-center will-change-transform">
                         <div className="absolute inset-0 rounded-full border-[2px] border-indigo-100/50 animate-[pulse_4s_ease-in-out_infinite]" />
                         <div className="absolute inset-40 rounded-full border-[1px] border-rose-100/50 animate-[pulse_5s_ease-in-out_infinite_reverse]" />
                         <div className="absolute w-[600px] h-[600px] bg-gradient-to-tr from-indigo-200/20 via-purple-200/20 to-rose-200/20 rounded-full blur-2xl animate-[spin_30s_linear_infinite] will-change-transform" />

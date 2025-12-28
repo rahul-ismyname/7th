@@ -54,20 +54,51 @@ export async function signupUser(formData: FormData) {
         // We rely on generateLink using the 'email' and 'password' variables directly.
 
 
+        // Determine Base URL
+        // FORCE PRODUCTION URL as requested by user
+        const BASE_URL = 'https://7th-l2kk.vercel.app';
+        console.log("Signup BASE_URL forced to:", BASE_URL);
+
         // 2. Generate Confirmation Link
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'signup',
             email: email,
             password: password,
             options: {
-                redirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'http://localhost:3000' : ''}/`
-                // In prod, use actual domain
+                redirectTo: BASE_URL // Remove trailing slash to match Supabase whitelist exactly
             }
         });
 
         if (linkError) {
+            // Fallback: If user already exists, 'signup' link fails. 
+            // We use 'magiclink' instead, which verifies the email and logs them in.
+            if (linkError.message?.includes("already") || linkError.message?.includes("register")) {
+                console.log("User exists, falling back to 'magiclink' type for verification.");
+                const { data: magicData, error: magicError } = await supabaseAdmin.auth.admin.generateLink({
+                    type: 'magiclink',
+                    email: email,
+                    options: { redirectTo: BASE_URL }
+                });
+
+                if (magicError) {
+                    console.error("MagicLink Gen Error:", magicError);
+                    return { error: `Verification Failed: ${magicError.message}` };
+                }
+
+                // Use the new link
+                const magicLink = magicData.properties?.action_link;
+                if (magicLink) {
+                    // Send this link via email
+                    const emailResult = await sendWelcomeEmail(email, magicLink);
+                    if (!emailResult.success) {
+                        return { error: `Email Failed: ${emailResult.error}` };
+                    }
+                    return { success: true, message: "Account exists. Verification email resent! Check your inbox." };
+                }
+            }
+
             console.error("Link Gen Error:", linkError);
-            return { error: "User created, but failed to generate verification link." };
+            return { error: `Link Gen Failed: ${linkError.message || linkError}` };
         }
 
         const verificationLink = linkData.properties?.action_link;
@@ -83,7 +114,7 @@ export async function signupUser(formData: FormData) {
             return { error: `User created, but email failed: ${emailResult.error}` };
         }
 
-        return { success: true };
+        return { success: true, message: "Account created! Please verify your email via the link sent to your inbox." };
 
     } catch (err: any) {
         console.error("Signup Exception:", err);
@@ -108,12 +139,14 @@ export async function requestPasswordReset(formData: FormData) {
         { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    const BASE_URL = 'https://7th-l2kk.vercel.app';
+
     try {
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'recovery',
             email: email,
             options: {
-                redirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'http://localhost:3000' : ''}/update-password`
+                redirectTo: `${BASE_URL}/update-password`
             }
         });
 

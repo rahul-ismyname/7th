@@ -4,6 +4,12 @@ import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  pool: true,
+  maxConnections: 2, // Reducing connections to avoid aggression flags
+  maxMessages: 100,
+  rateLimit: 1, // 1 email per second max to prevent throttling
+  logger: true,
+  debug: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
