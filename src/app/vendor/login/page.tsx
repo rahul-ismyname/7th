@@ -54,13 +54,9 @@ export default function VendorLoginPage() {
                 if (error) {
                     setMessage(error.message);
                 } else {
-                    // Role Check Security Barrier
-                    const role = data.user?.user_metadata?.role;
-                    if (role !== 'vendor') {
-                        await supabase.auth.signOut();
-                        setMessage("Access Denied: This account is not a business account.");
-                        return;
-                    }
+                    // Role Check REMOVED as per user request: Allow unified access
+                    // const role = data.user?.user_metadata?.role;
+                    // if (role !== 'vendor') { ... }
 
                     setMessage("Success! Taking you to your dashboard...");
                     router.push("/vendor");
