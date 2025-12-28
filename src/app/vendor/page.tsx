@@ -567,12 +567,12 @@ export default function VendorPage() {
                     <div className="flex-1 p-6 md:p-12 overflow-y-auto bg-white">
                         <div className="max-w-4xl mx-auto">
                             {/* Header */}
-                            <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-slate-100 pb-8">
+                            <header className="mb-6 md:mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 md:gap-6 border-b border-slate-100 pb-6 md:pb-8">
                                 <div>
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">{selectedPlace.name}</h1>
+                                    <div className="flex items-center gap-2 md:gap-4 mb-2">
+                                        <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">{selectedPlace.name}</h1>
                                         <span className={cn(
-                                            "px-3 py-1 text-xs font-bold rounded-full border",
+                                            "px-2 md:px-3 py-1 text-[10px] md:text-xs font-bold rounded-full border",
                                             selectedPlace.isApproved
                                                 ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                                                 : "bg-amber-50 text-amber-600 border-amber-100"
@@ -580,8 +580,8 @@ export default function VendorPage() {
                                             {selectedPlace.isApproved ? '● Live' : '○ Pending'}
                                         </span>
                                     </div>
-                                    <p className="text-slate-500 font-medium text-lg">{activeQueue.length} tickets in queue • ~{activeQueue.length * 5} min wait</p>
-                                    <div className="mt-2 flex items-center gap-2">
+                                    <p className="text-slate-500 font-medium text-sm md:text-lg">{activeQueue.length} tickets in queue • ~{activeQueue.length * 5} min wait</p>
+                                    <div className="mt-2 flex items-center gap-2 hidden md:flex">
                                         <span className="text-xs text-slate-400 font-medium">Business ID:</span>
                                         <code
                                             className="px-2 py-1 bg-slate-100 rounded-lg text-xs font-mono text-slate-600 cursor-pointer hover:bg-indigo-100 hover:text-indigo-600 transition-colors select-all"
@@ -595,9 +595,9 @@ export default function VendorPage() {
                                         </code>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setShowQR(true)} className="p-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all">
-                                        <QrCode className="w-5 h-5" />
+                                <div className="flex gap-2 w-full md:w-auto">
+                                    <button onClick={() => setShowQR(true)} className="flex-1 md:flex-none p-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all flex items-center justify-center gap-2">
+                                        <QrCode className="w-5 h-5" /> <span className="md:hidden text-sm font-bold">QR Code</span>
                                     </button>
                                     <button onClick={handleDeleteBusiness} className="p-3 bg-white border border-slate-200 text-slate-400 rounded-xl hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all">
                                         <XCircle className="w-5 h-5" />
@@ -606,33 +606,33 @@ export default function VendorPage() {
                             </header>
 
                             {/* Working Hours Settings */}
-                            <div className="mb-12">
+                            <div className="mb-8 md:mb-12">
                                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                                     <Clock className="w-4 h-4" /> Operating Hours
                                 </h3>
-                                <div className="flex items-end gap-4 p-1">
+                                <div className="flex items-end gap-2 md:gap-4 p-1">
                                     <div className="flex-1">
-                                        <label className="text-xs font-bold text-slate-500 mb-2 block">Opening Time</label>
+                                        <label className="text-[10px] md:text-xs font-bold text-slate-500 mb-2 block">Opening</label>
                                         <input
                                             type="time"
                                             value={hours.open}
                                             onChange={e => setHours(prev => ({ ...prev, open: e.target.value }))}
-                                            className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all"
+                                            className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all text-sm md:text-base"
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <label className="text-xs font-bold text-slate-500 mb-2 block">Closing Time</label>
+                                        <label className="text-[10px] md:text-xs font-bold text-slate-500 mb-2 block">Closing</label>
                                         <input
                                             type="time"
                                             value={hours.close}
                                             onChange={e => setHours(prev => ({ ...prev, close: e.target.value }))}
-                                            className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all"
+                                            className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all text-sm md:text-base"
                                         />
                                     </div>
                                     <button
                                         onClick={handleSaveHours}
                                         disabled={isSavingHours}
-                                        className="px-8 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50"
+                                        className="px-4 md:px-8 py-3 md:py-4 bg-slate-900 text-white font-bold rounded-xl md:rounded-2xl hover:bg-black transition-all disabled:opacity-50 text-sm md:text-base"
                                     >
                                         {isSavingHours ? "..." : "Save"}
                                     </button>
@@ -647,28 +647,28 @@ export default function VendorPage() {
                             )}
 
                             {/* Current Serving Card */}
-                            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-center mb-8 relative overflow-hidden">
+                            <div className="bg-slate-900 rounded-[2.5rem] p-6 md:p-10 text-center mb-8 relative overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
                                     <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-indigo-500 blur-[100px] rounded-full" />
                                     <div className="absolute bottom-[-50%] right-[-50%] w-full h-full bg-fuchsia-500 blur-[100px] rounded-full" />
                                 </div>
 
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 relative z-10">Now Serving</p>
-                                <div className="text-8xl md:text-9xl font-black text-white mb-8 tracking-tighter relative z-10">
+                                <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-4 relative z-10">Now Serving</p>
+                                <div className="text-7xl md:text-9xl font-black text-white mb-6 md:mb-8 tracking-tighter relative z-10">
                                     {currentlyServing.length > 0 ? currentlyServing[0].tokenNumber : "--"}
                                 </div>
 
                                 {currentlyServing.length > 0 && (
-                                    <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto relative z-10">
+                                    <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-sm mx-auto relative z-10">
                                         <button
                                             onClick={async () => await updateTicketStatus(currentlyServing[0].ticketId, 'completed')}
-                                            className="py-4 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2"
+                                            className="py-3 md:py-4 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl md:rounded-2xl font-bold text-base md:text-lg transition-all flex items-center justify-center gap-2"
                                         >
-                                            <CheckCircle2 className="w-6 h-6" /> Done
+                                            <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" /> Done
                                         </button>
                                         <button
                                             onClick={async () => await updateTicketStatus(currentlyServing[0].ticketId, 'cancelled')}
-                                            className="py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 backdrop-blur-sm"
+                                            className="py-3 md:py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl md:rounded-2xl font-bold transition-all flex items-center justify-center gap-2 backdrop-blur-sm text-sm md:text-base"
                                         >
                                             <XCircle className="w-5 h-5" /> No Show
                                         </button>
@@ -676,11 +676,11 @@ export default function VendorPage() {
                                 )}
                             </div>
 
-                            {/* Call Next Button */}
+                            {/* Call Next Button (Desktop) */}
                             <button
                                 onClick={onCallNext}
                                 disabled={!nextTicket}
-                                className="w-full py-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white rounded-3xl font-bold text-2xl shadow-2xl shadow-indigo-300 transition-all active:scale-[0.98] flex items-center justify-center gap-4"
+                                className="hidden md:flex w-full py-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white rounded-3xl font-bold text-2xl shadow-2xl shadow-indigo-300 transition-all active:scale-[0.98] items-center justify-center gap-4"
                             >
                                 {nextTicket ? (
                                     <>
@@ -691,6 +691,27 @@ export default function VendorPage() {
                                     <span className="text-lg">Queue Empty</span>
                                 )}
                             </button>
+
+                            {/* Call Next Button (Mobile Sticky Footer) */}
+                            <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 pb-safe">
+                                <button
+                                    onClick={onCallNext}
+                                    disabled={!nextTicket}
+                                    className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 disabled:from-slate-100 disabled:to-slate-100 disabled:text-slate-400 text-white rounded-2xl font-bold text-xl shadow-lg transition-all active:scale-[0.95] flex items-center justify-center gap-3"
+                                >
+                                    {nextTicket ? (
+                                        <>
+                                            Call {nextTicket.tokenNumber}
+                                            <Megaphone className="w-6 h-6" />
+                                        </>
+                                    ) : (
+                                        <span className="text-base font-medium">Queue Empty</span>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Spacer for sticky footer */}
+                            <div className="md:hidden h-24" />
 
                             {/* Queue List */}
                             <div className="mt-6 bg-white rounded-2xl border border-slate-100 overflow-hidden">
