@@ -24,6 +24,7 @@ import { Search, Ticket, Store, MapPin, Clock, Users, Sparkles, ChevronRight, Be
 
 function HomeContent() {
     const { places, activeTickets, user } = usePlaces();
+    const router = useRouter();
     const [selectedPlaceId, setSelectedPlaceId] = useState(undefined);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState("places");

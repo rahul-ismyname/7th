@@ -234,7 +234,15 @@ export default function ProfilePage() {
                             </div>
 
                             <button
-                                onClick={() => signOut()}
+                                onClick={async () => {
+                                    try {
+                                        await signOut();
+                                    } catch (e) {
+                                        console.error("Sign out error:", e);
+                                    } finally {
+                                        window.location.href = "/";
+                                    }
+                                }}
                                 className="w-full py-4 text-rose-500 font-bold hover:bg-rose-50 rounded-2xl transition-colors flex items-center justify-center gap-2 group"
                             >
                                 <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Sign Out

@@ -17,7 +17,8 @@ import {
     Users,
     Sparkles,
     MapPin,
-    Timer
+    Timer,
+    LogOut
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
@@ -29,11 +30,13 @@ const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), 
 });
 
 export default function VendorPage() {
-    const { user, vendorPlaces, addPlace, removePlace, updateTicketStatus, callNextTicket } = usePlaces();
+    const { user, vendorPlaces, addPlace, removePlace, updateTicketStatus, callNextTicket, addCounter, deleteCounter } = usePlaces();
 
     const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+    const [selectedCounterId, setSelectedCounterId] = useState(null); // New: Select specific counter
     const [vendorTickets, setVendorTickets] = useState([]);
     const [isCreating, setIsCreating] = useState(false);
+    const [isAddingCounter, setIsAddingCounter] = useState(false); // New: Add counter mode
     const [showQR, setShowQR] = useState(false);
 
     // Set mode to vendor on mount
@@ -45,7 +48,115 @@ export default function VendorPage() {
         name: "", type: "", address: "", avgTime: 5
     });
 
-    // ... (keep intervening code)
+    // Local state for editing settings
+    const [hours, setHours] = useState({ open: "09:00", close: "17:00" });
+    const [avgTime, setAvgTime] = useState(5);
+    const [isSavingSettings, setIsSavingSettings] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
+
+    // New Counter State
+    const [newCounter, setNewCounter] = useState({ name: "", avgTime: 5 });
+
+    const [greeting, setGreeting] = useState("Good morning");
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    // Time-based greeting
+    useEffect(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) setGreeting("Good morning");
+        else if (hour < 18) setGreeting("Good afternoon");
+        else setGreeting("Good evening");
+    }, []);
+
+    const myPlaces = useMemo(() => vendorPlaces, [vendorPlaces]);
+
+    // Close mobile menu when a place is selected
+    useEffect(() => {
+        setMobileMenuOpen(false);
+    }, [selectedPlaceId, isCreating]);
+
+    useEffect(() => {
+        if (!selectedPlaceId) return;
+
+        const fetchTickets = async () => {
+            const { data } = await supabase
+                .from('tickets')
+                .select('*')
+                .eq('place_id', selectedPlaceId)
+                .order('created_at', { ascending: true });
+
+            if (data) {
+                const mapped = data.map((t) => ({
+                    placeId: t.place_id,
+                    ticketId: t.id,
+                    tokenNumber: t.token_number,
+                    estimatedWait: t.estimated_wait,
+                    timestamp: new Date(t.created_at).getTime(),
+                    status: t.status,
+                    counterId: t.counter_id // Add counterId
+                }));
+                setVendorTickets(mapped);
+            }
+        };
+
+        fetchTickets();
+
+        const channel = supabase
+            .channel(`vendor_tickets_${selectedPlaceId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'tickets',
+                filter: `place_id=eq.${selectedPlaceId}`
+            }, () => fetchTickets())
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [selectedPlaceId]);
+
+    // Update local state when selected place OR COUNTER changes
+    useEffect(() => {
+        if (selectedPlaceId) {
+            const place = vendorPlaces.find(p => p.id === selectedPlaceId);
+            if (place) {
+                // Default to first counter if none selected
+                if (!selectedCounterId && place.counters && place.counters.length > 0) {
+                    setSelectedCounterId(place.counters[0].id);
+                    return;
+                }
+
+                const counter = place.counters?.find(c => c.id === selectedCounterId);
+                if (counter) {
+                    setHours({
+                        open: counter.opening_time || "09:00",
+                        close: counter.closing_time || "17:00"
+                    });
+                    setAvgTime(counter.average_service_time || 5);
+                }
+            }
+        }
+    }, [selectedPlaceId, selectedCounterId, vendorPlaces]);
+
+    const handleSaveSettings = async () => {
+        if (!selectedCounterId) return;
+        setIsSavingSettings(true);
+
+        const { error } = await supabase
+            .from('counters')
+            .update({
+                opening_time: hours.open,
+                closing_time: hours.close
+            })
+            .eq('id', selectedCounterId);
+
+        if (error) {
+            console.error("Error updating settings:", error);
+            alert("Failed to update settings");
+        } else {
+            alert("Settings updated successfully!");
+        }
+        setIsSavingSettings(false);
+    };
 
     if (!user) {
         return (
@@ -74,11 +185,7 @@ export default function VendorPage() {
                         </span>
                     </Link>
 
-                    <div className="mt-8 pt-6 border-t border-white/10">
-                        <Link href="/" className="text-white/40 hover:text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                            <ArrowLeft className="w-4 h-4" /> Back to App
-                        </Link>
-                    </div>
+
                 </div>
             </div>
         );
@@ -170,8 +277,30 @@ export default function VendorPage() {
         }
     };
 
-    const activeQueue = vendorTickets.filter(t => t.status === 'waiting');
-    const currentlyServing = vendorTickets.filter(t => t.status === 'serving');
+    const handleAddCounter = async (e) => {
+        e.preventDefault();
+        if (!selectedPlaceId) return;
+        await addCounter(selectedPlaceId, {
+            name: newCounter.name,
+            avgServiceTime: newCounter.avgTime,
+            openingTime: "09:00",
+            closingTime: "17:00"
+        });
+        setIsAddingCounter(false);
+        setNewCounter({ name: "", avgTime: 5 });
+    };
+
+    const handleDeleteCounter = async () => {
+        if (!selectedCounterId || !selectedPlaceId) return;
+        if (confirm("Delete this counter and all its tickets?")) {
+            await deleteCounter(selectedCounterId, selectedPlaceId);
+            setSelectedCounterId(null);
+        }
+    };
+
+    // Filter tickets by Selected Counter
+    const activeQueue = vendorTickets.filter(t => t.status === 'waiting' && t.counterId === selectedCounterId);
+    const currentlyServing = vendorTickets.filter(t => t.status === 'serving' && t.counterId === selectedCounterId);
     const nextTicket = activeQueue[0];
 
     const onCallNext = async () => {
@@ -184,6 +313,7 @@ export default function VendorPage() {
     };
 
     const selectedPlace = myPlaces.find(p => p.id === selectedPlaceId);
+    const selectedCounter = selectedPlace?.counters?.find(c => c.id === selectedCounterId);
 
     return (
         <div className="min-h-screen bg-white flex font-sans text-slate-900 md:overflow-hidden relative flex-col md:flex-row">
@@ -372,10 +502,28 @@ export default function VendorPage() {
                     ))}
                 </div>
 
-                <div className="p-4 border-t border-slate-100">
-                    <Link href="/" className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-indigo-600 transition-colors px-2">
-                        <ArrowLeft className="w-4 h-4" /> Back to App
-                    </Link>
+                <div className="p-4 border-t border-slate-100 space-y-1">
+                    <button
+                        onClick={() => {
+                            localStorage.setItem("waitly_mode", "user");
+                            router.push('/');
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all font-bold text-sm"
+                    >
+                        <Users className="w-5 h-5" />
+                        Switch to User App
+                    </button>
+                    <button
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            localStorage.removeItem("waitly_mode");
+                            router.push('/');
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all font-bold text-sm"
+                    >
+                        <LogOut className="w-5 h-5" />
+                        Sign Out
+                    </button>
                 </div>
             </div>
 
@@ -548,157 +696,217 @@ export default function VendorPage() {
                                 </div>
                             </header>
 
-                            {/* Working Hours Settings */}
-                            <div className="mb-8 md:mb-12">
-                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                    <Clock className="w-4 h-4" /> Operating Hours
-                                </h3>
-                                <div className="flex items-end gap-2 md:gap-4 p-1">
-                                    <div className="flex-1">
-                                        <label className="text-[10px] md:text-xs font-bold text-slate-500 mb-2 block">Opening</label>
-                                        <input
-                                            type="time"
-                                            value={hours.open}
-                                            onChange={e => setHours(prev => ({ ...prev, open: e.target.value }))}
-                                            className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all text-sm md:text-base"
-                                        />
-                                    </div>
-                                    <div className="flex-1">
-                                        <label className="text-[10px] md:text-xs font-bold text-slate-500 mb-2 block">Closing</label>
-                                        <input
-                                            type="time"
-                                            value={hours.close}
-                                            onChange={e => setHours(prev => ({ ...prev, close: e.target.value }))}
-                                            className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all text-sm md:text-base"
-                                        />
-                                    </div>
+                            {/* Counter Tabs */}
+                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                                {selectedPlace.counters?.map(counter => (
                                     <button
-                                        onClick={handleSaveSettings}
-                                        disabled={isSavingSettings}
-                                        className="px-4 md:px-8 py-3 md:py-4 bg-slate-900 text-white font-bold rounded-xl md:rounded-2xl hover:bg-black transition-all disabled:opacity-50 text-sm md:text-base"
+                                        key={counter.id}
+                                        onClick={() => { setSelectedCounterId(counter.id); setIsAddingCounter(false); }}
+                                        className={cn(
+                                            "px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border",
+                                            selectedCounterId === counter.id
+                                                ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                                                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                                        )}
                                     >
-                                        {isSavingSettings ? "..." : "Save"}
+                                        {counter.name}
                                     </button>
-                                </div>
-                                <div className="mt-4 flex flex-col md:flex-row gap-4">
-                                    <div className="flex-1 md:max-w-xs">
-                                        <label className="text-[10px] md:text-xs font-bold text-slate-500 mb-2 block">Avg. Service Time (mins)</label>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                value={avgTime}
-                                                readOnly
-                                                disabled
-                                                className="w-full p-3 md:p-4 pl-12 bg-slate-100 rounded-xl md:rounded-2xl font-bold text-slate-500 border-2 border-transparent outline-none cursor-not-allowed text-sm md:text-base"
-                                            />
-                                            <Timer className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        </div>
-                                        <p className="text-[10px] text-slate-400 mt-1 font-medium">This updates automatically based on user reviews.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {!selectedPlace.isApproved && (
-                                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 text-sm">
-                                    <Clock className="w-5 h-5 shrink-0" />
-                                    <p>Your business is <strong>hidden from the map</strong> pending admin approval. You can still test queues internally.</p>
-                                </div>
-                            )}
-
-                            {/* Current Serving Card */}
-                            <div className="bg-slate-900 rounded-[2.5rem] p-6 md:p-10 text-center mb-8 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-                                    <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-indigo-500 blur-[100px] rounded-full" />
-                                    <div className="absolute bottom-[-50%] right-[-50%] w-full h-full bg-fuchsia-500 blur-[100px] rounded-full" />
-                                </div>
-
-                                <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-4 relative z-10">Now Serving</p>
-                                <div className="text-7xl md:text-9xl font-black text-white mb-6 md:mb-8 tracking-tighter relative z-10">
-                                    {currentlyServing.length > 0 ? currentlyServing[0].tokenNumber : "--"}
-                                </div>
-
-                                {currentlyServing.length > 0 && (
-                                    <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-sm mx-auto relative z-10">
-                                        <button
-                                            onClick={async () => await updateTicketStatus(currentlyServing[0].ticketId, 'completed')}
-                                            className="py-3 md:py-4 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl md:rounded-2xl font-bold text-base md:text-lg transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" /> Done
-                                        </button>
-                                        <button
-                                            onClick={async () => await updateTicketStatus(currentlyServing[0].ticketId, 'cancelled')}
-                                            className="py-3 md:py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl md:rounded-2xl font-bold transition-all flex items-center justify-center gap-2 backdrop-blur-sm text-sm md:text-base"
-                                        >
-                                            <XCircle className="w-5 h-5" /> No Show
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Call Next Button (Desktop) */}
-                            <button
-                                onClick={onCallNext}
-                                disabled={!nextTicket}
-                                className="hidden md:flex w-full py-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white rounded-3xl font-bold text-2xl shadow-2xl shadow-indigo-300 transition-all active:scale-[0.98] items-center justify-center gap-4"
-                            >
-                                {nextTicket ? (
-                                    <>
-                                        Call {nextTicket.tokenNumber}
-                                        <Megaphone className="w-7 h-7" />
-                                    </>
-                                ) : (
-                                    <span className="text-lg">Queue Empty</span>
-                                )}
-                            </button>
-
-                            {/* Call Next Button (Mobile Sticky Footer) */}
-                            <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 pb-safe">
+                                ))}
                                 <button
-                                    onClick={onCallNext}
-                                    disabled={!nextTicket}
-                                    className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 disabled:from-slate-100 disabled:to-slate-100 disabled:text-slate-400 text-white rounded-2xl font-bold text-xl shadow-lg transition-all active:scale-[0.95] flex items-center justify-center gap-3"
-                                >
-                                    {nextTicket ? (
-                                        <>
-                                            Call {nextTicket.tokenNumber}
-                                            <Megaphone className="w-6 h-6" />
-                                        </>
-                                    ) : (
-                                        <span className="text-base font-medium">Queue Empty</span>
+                                    onClick={() => { setIsAddingCounter(true); setSelectedCounterId(null); }}
+                                    className={cn(
+                                        "px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border border-dashed",
+                                        isAddingCounter
+                                            ? "bg-slate-900 text-white border-slate-900"
+                                            : "bg-transparent text-slate-400 border-slate-300 hover:border-indigo-400 hover:text-indigo-600"
                                     )}
+                                >
+                                    + Add Counter
                                 </button>
                             </div>
 
-                            {/* Spacer for sticky footer */}
-                            <div className="md:hidden h-24" />
-
-                            {/* Queue List */}
-                            <div className="mt-6 bg-white rounded-2xl border border-slate-100 overflow-hidden">
-                                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                                    <span className="font-bold text-slate-700">Waiting Queue</span>
-                                    <span className="text-sm text-slate-400">{activeQueue.length} people</span>
+                            {/* Add Counter Form */}
+                            {isAddingCounter && (
+                                <div className="mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-4">
+                                    <h3 className="font-bold text-lg mb-4">Add New Counter</h3>
+                                    <form onSubmit={handleAddCounter} className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">Counter Name</label>
+                                            <input
+                                                value={newCounter.name}
+                                                onChange={e => setNewCounter({ ...newCounter, name: e.target.value })}
+                                                className="w-full p-3 rounded-xl border border-slate-200"
+                                                placeholder="e.g. Express Lane"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">Avg Service Time (mins)</label>
+                                            <input
+                                                type="number"
+                                                value={newCounter.avgTime}
+                                                onChange={e => setNewCounter({ ...newCounter, avgTime: e.target.value })}
+                                                className="w-full p-3 rounded-xl border border-slate-200"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold">Add Counter</button>
+                                            <button type="button" onClick={() => setIsAddingCounter(false)} className="px-4 py-2 bg-slate-200 text-slate-600 rounded-xl font-bold">Cancel</button>
+                                        </div>
+                                    </form>
                                 </div>
-                                {activeQueue.length === 0 ? (
-                                    <div className="p-8 text-center text-slate-400">
-                                        <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                                        <p>No one in queue yet</p>
-                                    </div>
-                                ) : (
-                                    <div className="divide-y divide-slate-50">
-                                        {activeQueue.slice(0, 10).map((ticket, i) => (
-                                            <div key={ticket.ticketId} className="p-4 flex items-center justify-between hover:bg-slate-50">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-bold text-sm">
-                                                        {i + 1}
-                                                    </span>
-                                                    <span className="font-bold text-slate-800">{ticket.tokenNumber}</span>
-                                                </div>
-                                                <span className="text-sm text-slate-400">~{(i + 1) * 5}m</span>
+                            )}
+
+                            {/* Ticket / Queue Views */}
+                            {selectedCounterId && selectedCounter && (
+                                <>
+                                    {/* Working Hours Settings */}
+                                    <div className="mb-8 md:mb-12">
+                                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <Clock className="w-4 h-4" /> Operating Hours
+                                        </h3>
+                                        <div className="flex items-end gap-2 md:gap-4 p-1">
+                                            <div className="flex-1">
+                                                <label className="text-[10px] md:text-xs font-bold text-slate-500 mb-2 block">Opening</label>
+                                                <input
+                                                    type="time"
+                                                    value={hours.open}
+                                                    onChange={e => setHours(prev => ({ ...prev, open: e.target.value }))}
+                                                    className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all text-sm md:text-base"
+                                                />
                                             </div>
-                                        ))}
+                                            <div className="flex-1">
+                                                <label className="text-[10px] md:text-xs font-bold text-slate-500 mb-2 block">Closing</label>
+                                                <input
+                                                    type="time"
+                                                    value={hours.close}
+                                                    onChange={e => setHours(prev => ({ ...prev, close: e.target.value }))}
+                                                    className="w-full p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all text-sm md:text-base"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={handleSaveSettings}
+                                                disabled={isSavingSettings}
+                                                className="px-4 md:px-8 py-3 md:py-4 bg-slate-900 text-white font-bold rounded-xl md:rounded-2xl hover:bg-black transition-all disabled:opacity-50 text-sm md:text-base"
+                                            >
+                                                {isSavingSettings ? "..." : "Save"}
+                                            </button>
+                                        </div>
                                     </div>
-                                )}
-                            </div>
+
+
+                                    {!selectedPlace.isApproved && (
+                                        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-800 text-sm">
+                                            <Clock className="w-5 h-5 shrink-0" />
+                                            <p>Your business is <strong>hidden from the map</strong> pending admin approval. You can still test queues internally.</p>
+                                        </div>
+                                    )}
+
+                                    {/* Current Serving Card */}
+                                    <div className="bg-slate-900 rounded-[2.5rem] p-6 md:p-10 text-center mb-8 relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+                                            <div className="absolute top-[-50%] left-[-50%] w-full h-full bg-indigo-500 blur-[100px] rounded-full" />
+                                            <div className="absolute bottom-[-50%] right-[-50%] w-full h-full bg-fuchsia-500 blur-[100px] rounded-full" />
+                                        </div>
+
+                                        <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-4 relative z-10">Now Serving</p>
+                                        <div className="text-7xl md:text-9xl font-black text-white mb-6 md:mb-8 tracking-tighter relative z-10">
+                                            {currentlyServing.length > 0 ? currentlyServing[0].tokenNumber : "--"}
+                                        </div>
+
+                                        {currentlyServing.length > 0 && (
+                                            <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-sm mx-auto relative z-10">
+                                                <button
+                                                    onClick={async () => await updateTicketStatus(currentlyServing[0].ticketId, 'completed')}
+                                                    className="py-3 md:py-4 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl md:rounded-2xl font-bold text-base md:text-lg transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" /> Done
+                                                </button>
+                                                <button
+                                                    onClick={async () => await updateTicketStatus(currentlyServing[0].ticketId, 'cancelled')}
+                                                    className="py-3 md:py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl md:rounded-2xl font-bold transition-all flex items-center justify-center gap-2 backdrop-blur-sm text-sm md:text-base"
+                                                >
+                                                    <XCircle className="w-5 h-5" /> No Show
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Call Next Button (Desktop) */}
+                                    <button
+                                        onClick={onCallNext}
+                                        disabled={!nextTicket}
+                                        className="hidden md:flex w-full py-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white rounded-3xl font-bold text-2xl shadow-2xl shadow-indigo-300 transition-all active:scale-[0.98] items-center justify-center gap-4"
+                                    >
+                                        {nextTicket ? (
+                                            <>
+                                                Call {nextTicket.tokenNumber}
+                                                <Megaphone className="w-7 h-7" />
+                                            </>
+                                        ) : (
+                                            <span className="text-lg">Queue Empty</span>
+                                        )}
+                                    </button>
+
+                                    {/* Call Next Button (Mobile Sticky Footer) */}
+                                    <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 pb-safe">
+                                        <button
+                                            onClick={onCallNext}
+                                            disabled={!nextTicket}
+                                            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 disabled:from-slate-100 disabled:to-slate-100 disabled:text-slate-400 text-white rounded-2xl font-bold text-xl shadow-lg transition-all active:scale-[0.95] flex items-center justify-center gap-3"
+                                        >
+                                            {nextTicket ? (
+                                                <>
+                                                    Call {nextTicket.tokenNumber}
+                                                    <Megaphone className="w-6 h-6" />
+                                                </>
+                                            ) : (
+                                                <span className="text-base font-medium">Queue Empty</span>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {/* Spacer for sticky footer */}
+                                    <div className="md:hidden h-24" />
+
+                                    {/* Queue List */}
+                                    <div className="mt-6 bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                                        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                                            <span className="font-bold text-slate-700">Waiting Queue</span>
+                                            <span className="text-sm text-slate-400">{activeQueue.length} people</span>
+                                        </div>
+                                        {activeQueue.length === 0 ? (
+                                            <div className="p-8 text-center text-slate-400">
+                                                <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                                                <p>No one in queue yet</p>
+                                            </div>
+                                        ) : (
+                                            <div className="divide-y divide-slate-50">
+                                                {activeQueue.slice(0, 10).map((ticket, i) => (
+                                                    <div key={ticket.ticketId} className="p-4 flex items-center justify-between hover:bg-slate-50">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-bold text-sm">
+                                                                {i + 1}
+                                                            </span>
+                                                            <span className="font-bold text-slate-800">{ticket.tokenNumber}</span>
+                                                        </div>
+                                                        <span className="text-sm text-slate-400">~{(i + 1) * 5}m</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                                        <button
+                                            onClick={handleDeleteCounter}
+                                            className="px-4 py-3 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                                        >
+                                            <XCircle className="w-4 h-4" /> Delete This Counter
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 ) : (
@@ -719,6 +927,6 @@ export default function VendorPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

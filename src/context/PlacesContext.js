@@ -21,6 +21,7 @@ const mapPlaceData = (p) => ({
     currentServingToken: p.current_serving_token,
     estimatedTurnTime: p.estimated_turn_time,
     averageServiceTime: p.average_service_time || 5, // Default to 5
+    counters: p.counters || [], // Map counters
 });
 
 const PlacesContext = createContext(undefined);
@@ -46,7 +47,7 @@ export function PlacesProvider({ children }) {
             try {
                 const { data: placesData, error: placesError } = await supabase
                     .from('places')
-                    .select('*')
+                    .select('*, counters(*)') // Fetch counters relation
                     .eq('is_approved', true); // ONLY APPROVED PLACES VISIBLE
 
                 if (placesError) {
@@ -173,7 +174,8 @@ export function PlacesProvider({ children }) {
                 tokenNumber: t.token_number,
                 estimatedWait: t.estimated_wait,
                 timestamp: new Date(t.created_at).getTime(),
-                status: t.status
+                status: t.status,
+                counterId: t.counter_id
             }));
             setActiveTickets(mappedActive);
         }
@@ -210,7 +212,7 @@ export function PlacesProvider({ children }) {
     async function fetchVendorPlaces(userId) {
         const { data: placesData, error } = await supabase
             .from('places')
-            .select('*')
+            .select('*, counters(*)')
             .eq('owner_id', userId);
 
         if (error) {
@@ -237,9 +239,60 @@ export function PlacesProvider({ children }) {
                 queueLength: p.queue_length,
                 currentServingToken: p.current_serving_token,
                 estimatedTurnTime: p.estimated_turn_time,
+                counters: p.counters || [] // Map counters
             }));
             setVendorPlaces(mappedPlaces);
         }
+    };
+
+    const addCounter = async (placeId, counterData) => {
+        const { data, error } = await supabase
+            .from('counters')
+            .insert([{
+                place_id: placeId,
+                name: counterData.name,
+                average_service_time: counterData.avgServiceTime,
+                opening_time: counterData.openingTime,
+                closing_time: counterData.closingTime
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error adding counter:", error);
+            alert("Failed to add counter: " + error.message);
+            return null;
+        }
+
+        // Optimistic Update
+        setVendorPlaces(prev => prev.map(p => {
+            if (p.id === placeId) {
+                return { ...p, counters: [...p.counters, data] };
+            }
+            return p;
+        }));
+        return data;
+    };
+
+    const deleteCounter = async (counterId, placeId) => {
+        const { error } = await supabase
+            .from('counters')
+            .delete()
+            .eq('id', counterId);
+
+        if (error) {
+            console.error("Error deleting counter:", error);
+            alert("Failed to delete counter");
+            return;
+        }
+
+        // Optimistic Update
+        setVendorPlaces(prev => prev.map(p => {
+            if (p.id === placeId) {
+                return { ...p, counters: p.counters.filter(c => c.id !== counterId) };
+            }
+            return p;
+        }));
     };
 
     // Vendor Actions
@@ -351,7 +404,9 @@ export function PlacesProvider({ children }) {
                 crowd_level: place.crowdLevel,
                 owner_id: user.id, // Set the owner!
                 average_service_time: place.averageServiceTime || 5
-            }]);
+            }])
+            .select()
+            .single();
 
         if (error) {
             console.error("Error adding place (Full):", error);
@@ -360,6 +415,17 @@ export function PlacesProvider({ children }) {
             console.error("Hint:", error.hint);
             alert("Failed to add place: " + error.message);
         } else {
+            // Create Default Counter
+            if (data) {
+                await supabase.from('counters').insert({
+                    place_id: data.id,
+                    name: "Main Counter",
+                    average_service_time: place.averageServiceTime || 5,
+                    opening_time: "09:00",
+                    closing_time: "17:00"
+                });
+            }
+
             // Success!
             alert("Business Registered Successfully!");
             // Refresh vendor list immediately
@@ -415,11 +481,11 @@ export function PlacesProvider({ children }) {
             .from('tickets')
             .insert({
                 place_id: placeId,
+                counter_id: details?.counterId, // Link to Counter
                 user_id: user.id, // Link to User
                 token_number: `#${tokenNumber}`,
-                estimated_wait: place.liveWaitTime || 15,
+                estimated_wait: details?.estimatedWait || 15,
                 status: 'waiting',
-                counter: details?.counter,
                 preferred_time: details?.preferredTime,
                 preferred_date: details?.preferredDate
             })
@@ -438,7 +504,9 @@ export function PlacesProvider({ children }) {
                 placeId: data.place_id,
                 ticketId: data.id,
                 tokenNumber: data.token_number,
+                tokenNumber: data.token_number,
                 estimatedWait: data.estimated_wait,
+                counterId: data.counter_id,
                 timestamp: new Date(data.created_at).getTime(),
                 status: data.status
             };
@@ -487,8 +555,10 @@ export function PlacesProvider({ children }) {
             places,
             vendorPlaces, // Added
             activeTickets,
-            historyTickets, // Added
+            historyTickets,
             addPlace,
+            addCounter, // Exported
+            deleteCounter, // Exported
             removePlace,
             resetPlaces: () => { }, // No-op for now in realtime mode
             joinQueue,
@@ -500,7 +570,13 @@ export function PlacesProvider({ children }) {
             submitReview,
             toggleQueueStatus,
             clearHistory,
-            signOut: async () => { await supabase.auth.signOut(); },
+            signOut: async () => {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem("waitly_mode");
+                }
+                setUser(null);
+                await supabase.auth.signOut();
+            },
             refreshHistory
         }}>
             {children}

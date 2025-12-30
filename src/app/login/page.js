@@ -54,6 +54,7 @@ export default function LoginPage() {
                     setMessage(error.message);
                 } else {
                     setMessage("Success! Redirecting...");
+                    localStorage.setItem("waitly_mode", "user");
                     router.push("/");
                     router.refresh();
                 }
