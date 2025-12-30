@@ -85,21 +85,21 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="h-screen w-full flex bg-[#FDFCFD] relative overflow-hidden font-sans selection:bg-indigo-100 text-slate-900">
-            <div className="w-full lg:w-[45%] xl:w-[40%] relative z-20 flex flex-col p-6 md:p-10 lg:p-12 bg-gradient-to-br from-indigo-50/80 via-white/90 to-rose-50/80 backdrop-blur-xl border-r border-white/50 shadow-[20px_0_40px_rgba(0,0,0,0.02)] h-full justify-between">
+        <div className="min-h-[100dvh] w-full flex flex-col lg:flex-row bg-[#FDFCFD] relative font-sans selection:bg-indigo-100 text-slate-900">
+            <div className="w-full lg:w-[45%] xl:w-[40%] relative z-20 flex flex-col p-6 md:p-10 lg:p-12 bg-gradient-to-br from-indigo-50/80 via-white/90 to-rose-50/80 backdrop-blur-xl border-r border-white/50 shadow-[20px_0_40px_rgba(0,0,0,0.02)] min-h-[100dvh] justify-between">
 
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
                     <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-100/40 rounded-full blur-[80px]" />
                     <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-rose-100/40 rounded-full blur-[80px]" />
                 </div>
 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mb-8 lg:mb-0">
                     <Link href="/" className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors group">
                         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back
                     </Link>
                 </div>
 
-                <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full animate-in slide-in-from-left-4 duration-500 fade-in fill-mode-both">
+                <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full animate-in slide-in-from-left-4 duration-500 fade-in fill-mode-both py-8">
 
                     <div className="mb-6 relative">
                         <div className="relative w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-indigo-500/20 rotate-3 transition-transform duration-500 hover:rotate-6 hover:scale-105 cursor-default">
@@ -250,7 +250,7 @@ export default function LoginPage() {
                         )}
                     </form>
                 </div>
-                <div className="mt-4 text-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150 pb-6 lg:pb-0">
                     <p className="text-slate-400 font-medium text-xs uppercase tracking-widest mb-3">Partner Access</p>
                     <Link href="/vendor/login" className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-full text-slate-600 font-bold text-sm transition-all hover:pr-6 group">
                         <Store className="w-4 h-4 text-indigo-500" />
@@ -260,7 +260,7 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            <div className="hidden lg:block flex-1 relative bg-gradient-to-br from-slate-50 to-[#FAFAFA] overflow-hidden">
+            <div className="hidden lg:block flex-1 relative bg-gradient-to-br from-slate-50 to-[#FAFAFA] overflow-hidden min-h-[100dvh]">
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="relative w-[750px] h-[750px] rounded-full bg-gradient-to-tr from-indigo-50 via-white to-pink-50 shadow-2xl flex items-center justify-center will-change-transform">
                         <div className="absolute inset-0 rounded-full border-[2px] border-indigo-100/50 animate-[pulse_4s_ease-in-out_infinite]" />

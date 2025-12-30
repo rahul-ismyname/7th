@@ -67,7 +67,7 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm }) {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setIsSubmitting(true);
         try {
             await onConfirm(formData);
@@ -121,7 +121,8 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm }) {
 
                 {/* Scrollable Form Area */}
                 <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-8 scrollbar-hide">
-                    <form onSubmit={handleSubmit} id="join-form" className="space-y-6">
+                    {/* Removed form tag wrapper, just div logic is fine since we manuall submit */}
+                    <div className="space-y-6">
 
                         {/* Section: Counter */}
                         <div className="space-y-3">
@@ -306,14 +307,14 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm }) {
                             )}
                         </div>
 
-                    </form>
+                    </div>
                 </div>
 
                 {/* Footer Action */}
                 <div className="p-6 pt-2 bg-white border-t border-slate-100 z-10">
                     <button
-                        form="join-form"
-                        type="submit"
+                        type="button"
+                        onClick={handleSubmit}
                         disabled={isSubmitting || !formData.counter || !formData.preferredDate || !formData.preferredTime}
                         className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-lg py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
                     >
