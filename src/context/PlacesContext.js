@@ -1,13 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { Place, PLACES as DEFAULT_PLACES } from "@/lib/data";
+import { PLACES as DEFAULT_PLACES } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
 
 // Helper to map DB row to Place object
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mapPlaceData = (p: any): Place => ({
+const mapPlaceData = (p) => ({
     id: p.id,
     name: p.name,
     type: p.type,
@@ -22,47 +20,17 @@ const mapPlaceData = (p: any): Place => ({
     queueLength: p.queue_length,
     currentServingToken: p.current_serving_token,
     estimatedTurnTime: p.estimated_turn_time,
+    averageServiceTime: p.average_service_time || 5, // Default to 5
 });
 
-export interface Ticket {
-    placeId: string;
-    ticketId: string;
-    tokenNumber: string;
-    estimatedWait: number;
-    timestamp: number;
-    status: 'waiting' | 'serving' | 'completed' | 'cancelled';
-}
+const PlacesContext = createContext(undefined);
 
-interface PlacesContextType {
-    user: User | null;
-    places: Place[];
-    activeTickets: Ticket[];
-    historyTickets: Ticket[]; // New History State
-    vendorPlaces: Place[];
-    addPlace: (place: Place) => void;
-    removePlace: (id: string) => void;
-    resetPlaces: () => void;
-    joinQueue: (placeId: string, details?: { counter: string; preferredTime: string; preferredDate: string }) => void;
-    leaveQueue: (placeId: string) => void;
-    updateTicketStatus: (ticketId: string, status: Ticket['status']) => Promise<void>;
-    callNextTicket: (placeId: string, tokenNumber: string) => Promise<void>;
-    markNoShow: (ticketId: string) => Promise<void>;
-    toggleQueueStatus: (placeId: string, isOpen: boolean) => Promise<void>;
-    completeTicket: (ticketId: string) => Promise<void>;
-    submitReview: (ticketId: string, data: { actualWaitTime?: number; counterUsed?: string }) => Promise<void>;
-    refreshHistory: () => void;
-    clearHistory: () => Promise<void>;
-    signOut: () => Promise<void>;
-}
-
-const PlacesContext = createContext<PlacesContextType | undefined>(undefined);
-
-export function PlacesProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [places, setPlaces] = useState<Place[]>([]);
-    const [vendorPlaces, setVendorPlaces] = useState<Place[]>([]);
-    const [activeTickets, setActiveTickets] = useState<Ticket[]>([]);
-    const [historyTickets, setHistoryTickets] = useState<Ticket[]>([]); // New State
+export function PlacesProvider({ children }) {
+    const [user, setUser] = useState(null);
+    const [places, setPlaces] = useState([]);
+    const [vendorPlaces, setVendorPlaces] = useState([]);
+    const [activeTickets, setActiveTickets] = useState([]);
+    const [historyTickets, setHistoryTickets] = useState([]); // New State
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
@@ -89,8 +57,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
                     setPlaces(DEFAULT_PLACES);
                 } else if (placesData && placesData.length > 0) {
                     console.log("PlacesContext: Loaded DB Places:", placesData.length);
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const mappedPlaces: Place[] = placesData.map(mapPlaceData);
+                    const mappedPlaces = placesData.map(mapPlaceData);
                     setPlaces(mappedPlaces);
                 } else {
                     console.warn("PlacesContext: No DB Places found, using defaults.");
@@ -126,7 +93,6 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
                 if (payload.eventType === 'INSERT') {
                     // Only add if approved
                     if (payload.new.is_approved) {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const newPlace = mapPlaceData(payload.new);
                         setPlaces(prev => [...prev, newPlace]);
                     }
@@ -138,7 +104,6 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
                         setPlaces(prev => prev.filter(p => p.id !== payload.new.id));
                     } else {
                         // Normal update or newly approved
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const updatedPlace = mapPlaceData(payload.new);
                         setPlaces(prev => {
                             const exists = prev.find(p => p.id === updatedPlace.id);
@@ -190,7 +155,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
        For History, we can just fetch it on mount/auth and maybe refresh if user requests.
     */
 
-    async function fetchUserTickets(userId: string) {
+    async function fetchUserTickets(userId) {
         // 1. Fetch Active
         const { data: activeData, error: activeError } = await supabase
             .from('tickets')
@@ -202,13 +167,13 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         console.log("PlacesContext: Active tickets found:", activeData?.length || 0);
 
         if (activeData) {
-            const mappedActive = activeData.map((t: any) => ({
+            const mappedActive = activeData.map((t) => ({
                 placeId: t.place_id,
                 ticketId: t.id,
                 tokenNumber: t.token_number,
                 estimatedWait: t.estimated_wait,
                 timestamp: new Date(t.created_at).getTime(),
-                status: t.status as Ticket['status']
+                status: t.status
             }));
             setActiveTickets(mappedActive);
         }
@@ -226,13 +191,13 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         console.log("PlacesContext: History tickets found:", historyData?.length || 0);
 
         if (historyData) {
-            const mappedHistory = historyData.map((t: any) => ({
+            const mappedHistory = historyData.map((t) => ({
                 placeId: t.place_id,
                 ticketId: t.id,
                 tokenNumber: t.token_number,
                 estimatedWait: t.estimated_wait,
                 timestamp: new Date(t.created_at).getTime(),
-                status: t.status as Ticket['status']
+                status: t.status
             }));
             setHistoryTickets(mappedHistory);
         }
@@ -242,7 +207,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         if (user) fetchUserTickets(user.id);
     };
 
-    async function fetchVendorPlaces(userId: string) {
+    async function fetchVendorPlaces(userId) {
         const { data: placesData, error } = await supabase
             .from('places')
             .select('*')
@@ -257,8 +222,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (placesData) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const mappedPlaces: Place[] = placesData.map((p: any) => ({
+            const mappedPlaces = placesData.map((p) => ({
                 id: p.id,
                 name: p.name,
                 type: p.type,
@@ -279,7 +243,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Vendor Actions
-    const updateTicketStatus = async (ticketId: string, status: Ticket['status']) => {
+    const updateTicketStatus = async (ticketId, status) => {
         const { error } = await supabase
             .from('tickets')
             .update({ status })
@@ -292,7 +256,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         // Realtime will update the local state
     };
 
-    const callNextTicket = async (placeId: string, tokenNumber: string) => {
+    const callNextTicket = async (placeId, tokenNumber) => {
         // 1. Update the PLACE's current serving token
         const { error: placeError } = await supabase
             .from('places')
@@ -304,7 +268,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         if (placeError) console.error("Error updating place:", placeError);
     };
 
-    const markNoShow = async (ticketId: string) => {
+    const markNoShow = async (ticketId) => {
         const { error } = await supabase
             .from('tickets')
             .update({ status: 'cancelled' }) // or 'skipped', but schema uses cancelled for now
@@ -318,7 +282,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         setActiveTickets(prev => prev.filter(t => t.ticketId !== ticketId));
     };
 
-    const completeTicket = async (ticketId: string) => {
+    const completeTicket = async (ticketId) => {
         const { error } = await supabase
             .from('tickets')
             .update({ status: 'completed' })
@@ -336,28 +300,55 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const submitReview = async (ticketId: string, data: { actualWaitTime?: number; counterUsed?: string }) => {
-        const updateData: any = {
+    const submitReview = async (ticketId, data) => {
+        const updateData = {
             has_feedback_provided: true
         };
 
         if (data.actualWaitTime) updateData.actual_wait_time = data.actualWaitTime;
         if (data.counterUsed) updateData.counter_used = data.counterUsed;
 
-        // Note: Status is already 'completed' by completeTicket call
-
-        const { error } = await supabase
+        // 1. Update Ticket Review
+        const { data: ticketData, error } = await supabase
             .from('tickets')
             .update(updateData)
-            .eq('id', ticketId);
+            .eq('id', ticketId)
+            .select('place_id')
+            .single();
 
         if (error) {
             console.error("Error submitting review:", error);
             throw error;
         }
+
+        // 2. Update Place Average Service Time (Exponential Moving Average)
+        if (data.actualWaitTime && ticketData?.place_id) {
+            const placeId = ticketData.place_id;
+            const currentPlace = places.find(p => p.id === placeId);
+
+            if (currentPlace) {
+                const oldAvg = currentPlace.averageServiceTime || 5;
+                const reportedTime = Number(data.actualWaitTime);
+
+                // Alpha = 0.1 means strictly "10%" weight to new feedback.
+                // This fits the user requirement: "one user cannot change (much), but a group will".
+                const alpha = 0.1;
+                const newAvg = Math.round((oldAvg * (1 - alpha)) + (reportedTime * alpha));
+
+                // Only update if it changed
+                if (newAvg !== oldAvg) {
+                    await supabase
+                        .from('places')
+                        .update({ average_service_time: newAvg })
+                        .eq('id', placeId);
+
+                    console.log(`Updated Place ${placeId} Avg Time: ${oldAvg} -> ${newAvg}`);
+                }
+            }
+        }
     };
 
-    const toggleQueueStatus = async (placeId: string, isOpen: boolean) => {
+    const toggleQueueStatus = async (placeId, isOpen) => {
         // We use is_approved to mean "Open/Active". 
         // If false, it means "Closed/Offline" in our simple logic.
         const { error } = await supabase
@@ -374,7 +365,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const addPlace = async (place: Place) => {
+    const addPlace = async (place) => {
         if (!user) {
             alert("You must be logged in to add a place.");
             return;
@@ -409,7 +400,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const removePlace = async (id: string) => {
+    const removePlace = async (id) => {
         if (!user) return;
 
         // Optimistic update
@@ -434,7 +425,7 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
         setActiveTickets([]);
     };
 
-    const joinQueue = async (placeId: string, details?: { counter: string; preferredTime: string; preferredDate: string }) => {
+    const joinQueue = async (placeId, details) => {
         if (!user) {
             alert("Please login to join a queue.");
             // Ideally redirect or show auth modal
@@ -482,13 +473,13 @@ export function PlacesProvider({ children }: { children: React.ReactNode }) {
                 tokenNumber: data.token_number,
                 estimatedWait: data.estimated_wait,
                 timestamp: new Date(data.created_at).getTime(),
-                status: data.status as Ticket['status']
+                status: data.status
             };
             setActiveTickets(prev => [...prev, newTicket]);
         }
     };
 
-    const leaveQueue = async (placeId: string) => {
+    const leaveQueue = async (placeId) => {
         const ticket = activeTickets.find(t => t.placeId === placeId);
 
         // Optimistic UI update

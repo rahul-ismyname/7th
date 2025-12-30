@@ -8,14 +8,14 @@ import Link from "next/link";
 import { signupUser, requestPasswordReset } from "@/actions/auth";
 
 export default function VendorLoginPage() {
-    const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+    const [mode, setMode] = useState("signin");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState<string | null>(null);
+    const [message, setMessage] = useState(null);
     const router = useRouter();
 
-    const handleAuth = async (e: React.FormEvent) => {
+    const handleAuth = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setMessage(null);
@@ -54,16 +54,12 @@ export default function VendorLoginPage() {
                 if (error) {
                     setMessage(error.message);
                 } else {
-                    // Role Check REMOVED as per user request: Allow unified access
-                    // const role = data.user?.user_metadata?.role;
-                    // if (role !== 'vendor') { ... }
-
                     setMessage("Success! Taking you to your dashboard...");
                     router.push("/vendor");
                     router.refresh();
                 }
             }
-        } catch (err: any) {
+        } catch (err) {
             setMessage("An unexpected error occurred.");
         } finally {
             setIsLoading(false);

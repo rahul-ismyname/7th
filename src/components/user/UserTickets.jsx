@@ -5,22 +5,18 @@ import { usePlaces } from "@/context/PlacesContext";
 import { Clock, MapPin, Ticket as TicketIcon, ArrowRight, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface UserTicketsProps {
-    onSelectPlace: (id: string) => void;
-}
-
 // Helper to send browser notification
-const sendNotification = (title: string, body: string) => {
+const sendNotification = (title, body) => {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification(title, { body, icon: '/favicon.ico' });
     }
 };
 
-export function UserTickets({ onSelectPlace }: UserTicketsProps) {
+export function UserTickets({ onSelectPlace }) {
     const { activeTickets, historyTickets, places, leaveQueue } = usePlaces();
-    const [view, setView] = useState<'active' | 'history'>('active');
-    const [countdown, setCountdown] = useState<number | null>(null);
-    const notifiedRef = useRef<{ fiveMin: Set<string>; turn: Set<string> }>({ fiveMin: new Set(), turn: new Set() });
+    const [view, setView] = useState('active');
+    const [countdown, setCountdown] = useState(null);
+    const notifiedRef = useRef({ fiveMin: new Set(), turn: new Set() });
 
     // Countdown Timer & Notification Effect
     useEffect(() => {
@@ -67,7 +63,7 @@ export function UserTickets({ onSelectPlace }: UserTicketsProps) {
     }, [activeTickets, places]);
 
     // Format seconds to MM:SS
-    const formatCountdown = (seconds: number) => {
+    const formatCountdown = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;

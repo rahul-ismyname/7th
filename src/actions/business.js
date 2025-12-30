@@ -5,14 +5,14 @@ import { sendDeletionConfirmationEmail } from './email';
 import crypto from 'crypto';
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Store deletion tokens temporarily (in production, use Redis or database)
-const deletionTokens = new Map<string, { placeId: string; expiresAt: number }>();
+const deletionTokens = new Map();
 
-export async function requestBusinessDeletion(placeId: string, userEmail: string, businessName: string) {
+export async function requestBusinessDeletion(placeId, userEmail, businessName) {
     try {
         // Generate a secure token
         const token = crypto.randomBytes(32).toString('hex');
@@ -41,7 +41,7 @@ export async function requestBusinessDeletion(placeId: string, userEmail: string
     }
 }
 
-export async function confirmBusinessDeletion(token: string) {
+export async function confirmBusinessDeletion(token) {
     try {
         const tokenData = deletionTokens.get(token);
 

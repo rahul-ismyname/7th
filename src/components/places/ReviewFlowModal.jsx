@@ -3,18 +3,9 @@
 import { useState } from "react";
 import { X, Check, Timer, } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Place } from "@/lib/data";
 
-interface ReviewFlowModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    place: Place;
-    onComplete: () => Promise<void>;
-    onSubmit: (data: { actualWaitTime?: number; counterUsed?: string }) => Promise<void>;
-}
-
-export function ReviewFlowModal({ isOpen, onClose, place, onComplete, onSubmit }: ReviewFlowModalProps) {
-    const [step, setStep] = useState<1 | 2 | 3>(1);
+export function ReviewFlowModal({ isOpen, onClose, place, onComplete, onSubmit }) {
+    const [step, setStep] = useState(1);
     const [waitTime, setWaitTime] = useState(20);
     const [counterUsed, setCounterUsed] = useState("");
     const [otherCounter, setOtherCounter] = useState("");
@@ -27,11 +18,11 @@ export function ReviewFlowModal({ isOpen, onClose, place, onComplete, onSubmit }
             // User confirmed they are done -> Mark as completed immediately
             await onComplete();
         }
-        setStep((prev) => (prev + 1) as 1 | 2 | 3);
+        setStep((prev) => (prev + 1));
     };
 
     const handleBack = () => {
-        setStep((prev) => (prev - 1) as 1 | 2 | 3);
+        setStep((prev) => (prev - 1));
     };
 
     const handleSubmit = async () => {

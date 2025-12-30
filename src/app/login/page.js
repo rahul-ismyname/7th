@@ -8,14 +8,14 @@ import Link from "next/link";
 import { signupUser, requestPasswordReset } from "@/actions/auth";
 
 export default function LoginPage() {
-    const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+    const [mode, setMode] = useState("signin");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState<string | null>(null);
+    const [message, setMessage] = useState(null);
     const router = useRouter();
 
-    const handleAuth = async (e: React.FormEvent) => {
+    const handleAuth = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setMessage(null);
@@ -29,10 +29,8 @@ export default function LoginPage() {
                     setMessage(result.error);
                 } else {
                     setMessage("Recovery link sent! (It may take 1-2 mins to arrive)");
-                    // Optional: Switch back to signin after a delay?
                 }
             } else if (mode === "signup") {
-                // Use Server Action for Signup (Manual Verification Flow)
                 const formData = new FormData();
                 formData.append('email', email);
                 formData.append('password', password);
@@ -47,7 +45,6 @@ export default function LoginPage() {
                     setPassword("");
                 }
             } else {
-                // Sign In
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
@@ -61,14 +58,13 @@ export default function LoginPage() {
                     router.refresh();
                 }
             }
-        } catch (err: any) {
+        } catch (err) {
             setMessage("An unexpected error occurred.");
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Helper texts
     const getTitle = () => {
         if (mode === "forgot") return "Recover.";
         if (mode === "signup") return "Join.";
@@ -90,23 +86,19 @@ export default function LoginPage() {
 
     return (
         <div className="h-screen w-full flex bg-[#FDFCFD] relative overflow-hidden font-sans selection:bg-indigo-100 text-slate-900">
-            {/* LEFT SIDE - FORM SECTION */}
             <div className="w-full lg:w-[45%] xl:w-[40%] relative z-20 flex flex-col p-6 md:p-10 lg:p-12 bg-gradient-to-br from-indigo-50/80 via-white/90 to-rose-50/80 backdrop-blur-xl border-r border-white/50 shadow-[20px_0_40px_rgba(0,0,0,0.02)] h-full justify-between">
 
-                {/* Decorative background elements */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
                     <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-100/40 rounded-full blur-[80px]" />
                     <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-rose-100/40 rounded-full blur-[80px]" />
                 </div>
 
-                {/* Header */}
                 <div className="flex justify-between items-center">
                     <Link href="/" className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors group">
                         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Back
                     </Link>
                 </div>
 
-                {/* Form */}
                 <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full animate-in slide-in-from-left-4 duration-500 fade-in fill-mode-both">
 
                     <div className="mb-6 relative">
@@ -268,16 +260,8 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            {/* RIGHT SIDE - VISUALS */}
             <div className="hidden lg:block flex-1 relative bg-gradient-to-br from-slate-50 to-[#FAFAFA] overflow-hidden">
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    {/* Same Abstract Clock as before, kept simple here to save chars, in real file ensure it's preserved. */}
-                    {/* Ideally I should use replace_file_content to KEEP the massive SVG art intact instead of rewriting it. 
-                        Wait, write_to_file replaces EVERYTHING. 
-                        I should double check if I have the full content of the SVG art from previous reads.
-                        Step 1106 has lines 1-205. Lines 153-194 contain the SVG art. 
-                        I will include it below to ensure no regression.
-                     */}
                     <div className="relative w-[750px] h-[750px] rounded-full bg-gradient-to-tr from-indigo-50 via-white to-pink-50 shadow-2xl flex items-center justify-center will-change-transform">
                         <div className="absolute inset-0 rounded-full border-[2px] border-indigo-100/50 animate-[pulse_4s_ease-in-out_infinite]" />
                         <div className="absolute inset-40 rounded-full border-[1px] border-rose-100/50 animate-[pulse_5s_ease-in-out_infinite_reverse]" />
@@ -292,17 +276,8 @@ export default function LoginPage() {
                             />
                         ))}
                     </div>
-
-                    <div className="absolute top-[20%] right-[15%] w-32 h-32 bg-gradient-to-br from-cyan-100 to-blue-200 rounded-full blur-lg opacity-50 animate-[float_12s_ease-in-out_infinite_reverse] will-change-transform" />
-                    <div className="absolute bottom-[25%] left-[20%] w-48 h-48 bg-gradient-to-tr from-fuchsia-100 to-purple-200 rounded-full blur-xl opacity-50 animate-[float_15s_ease-in-out_infinite] will-change-transform" />
-                    <div className="absolute top-[15%] left-[40%] w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full blur-md opacity-60 animate-[float_8s_ease-in-out_infinite_delay-1000] will-change-transform" />
-
-                    <div className="absolute bottom-12 right-12 text-right opacity-40">
-                        <p className="text-xs font-bold tracking-[0.8em] text-indigo-900/40 uppercase">A E S T H E T I C</p>
-                    </div>
                 </div>
             </div>
-
             <style jsx global>{`
                 @keyframes float {
                     0%, 100% { transform: translateY(0px); }

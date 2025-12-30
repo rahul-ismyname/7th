@@ -1,26 +1,12 @@
 "use client";
 
-import { Place } from "@/lib/data";
 import { useState, useMemo, useRef } from "react";
 import { X, Calendar as CalendarIcon, ChevronDown, Check, Clock, Banknote, FileText, Info, Briefcase, Sun, Moon, SunMedium } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface JoinQueueModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    place: Place;
-    onConfirm: (data: JoinQueueFormData) => Promise<void>;
-}
-
-export interface JoinQueueFormData {
-    counter: string;
-    preferredTime: string;
-    preferredDate: string;
-}
-
-export function JoinQueueModal({ isOpen, onClose, place, onConfirm }: JoinQueueModalProps) {
-    const datePickerRef = useRef<HTMLInputElement>(null);
-    const [formData, setFormData] = useState<JoinQueueFormData>({
+export function JoinQueueModal({ isOpen, onClose, place, onConfirm }) {
+    const datePickerRef = useRef(null);
+    const [formData, setFormData] = useState({
         counter: "",
         preferredTime: "",
         preferredDate: ""
@@ -31,9 +17,9 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm }: JoinQueueM
         const start = place.openingTime || "09:00";
         const end = place.closingTime || "21:00";
         const groups = {
-            morning: [] as string[],
-            afternoon: [] as string[],
-            evening: [] as string[]
+            morning: [],
+            afternoon: [],
+            evening: []
         };
 
         let [startH, startM] = start.split(":").map(Number);
@@ -71,7 +57,7 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm }: JoinQueueM
         return days;
     }, []);
 
-    const formatDateLabel = (date: Date, index: number) => {
+    const formatDateLabel = (date, index) => {
         if (index === 0) return { day: "Today", date: date.getDate() };
         if (index === 1) return { day: "Tmrw", date: date.getDate() };
         return {
@@ -80,7 +66,7 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm }: JoinQueueM
         };
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
@@ -345,7 +331,7 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm }: JoinQueueM
     );
 }
 
-function TimeSlotButton({ time, selected, onClick }: { time: string, selected: boolean, onClick: () => void }) {
+function TimeSlotButton({ time, selected, onClick }) {
     return (
         <button
             type="button"

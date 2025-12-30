@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Place } from "@/lib/data";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -11,18 +10,43 @@ const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
 const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
 const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
 
-const customIcon = new L.Icon({
-    iconUrl,
-    iconRetinaUrl,
-    shadowUrl,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
+const createCustomIcon = (type, isSelected) => {
+    const color = isSelected ? '#4f46e5' : '#64748b';
+    const size = isSelected ? 48 : 32;
+
+    return L.divIcon({
+        className: 'custom-marker',
+        html: `
+            <div style="
+                background-color: ${color};
+                width: ${size}px;
+                height: ${size}px;
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                border: 3px solid white;
+                transition: all 0.3s ease;
+            ">
+                <div style="
+                    width: ${size / 2.5}px;
+                    height: ${size / 2.5}px;
+                    background-color: white;
+                    border-radius: 50%;
+                    transform: rotate(45deg);
+                "></div>
+            </div>
+        `,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size],
+        popupAnchor: [0, -size]
+    });
+};
 
 // Component to handle map center updates
-function MapUpdater({ selectedPlace }: { selectedPlace?: Place }) {
+function MapUpdater({ selectedPlace }) {
     const map = useMap();
 
     useEffect(() => {
@@ -37,7 +61,7 @@ function MapUpdater({ selectedPlace }: { selectedPlace?: Place }) {
 }
 
 // Component to handle map clicks
-function MapClickHandler({ onDoubleClick }: { onDoubleClick?: (lat: number, lng: number) => void }) {
+function MapClickHandler({ onDoubleClick }) {
     useMapEvents({
         dblclick: (e) => {
             if (onDoubleClick) {
@@ -75,25 +99,14 @@ function LocateUser() {
     );
 }
 
-interface OSMMapProps {
-    places: Place[];
-    selectedPlaceId?: string;
-    onSelectPlace: (id: string) => void;
-    onMapDoubleClick?: (lat: number, lng: number) => void;
-}
-
 // Component to handle efficient marker rendering
 function PlacesLayer({
     places,
     onSelectPlace,
     onMapMoveEnd
-}: {
-    places: Place[],
-    onSelectPlace: (id: string) => void,
-    onMapMoveEnd?: (lat: number, lng: number) => void
 }) {
     const map = useMap();
-    const [visiblePlaces, setVisiblePlaces] = useState<Place[]>([]);
+    const [visiblePlaces, setVisiblePlaces] = useState([]);
 
     // Function to update visible places based on bounds and zoom
     const updateVisibility = () => {
@@ -145,7 +158,7 @@ function PlacesLayer({
                 <Marker
                     key={place.id}
                     position={[place.coordinates.lat, place.coordinates.lng]}
-                    icon={customIcon}
+                    icon={createCustomIcon(place.type, false)}
                     eventHandlers={{
                         click: () => onSelectPlace(place.id),
                         popupclose: () => onSelectPlace("")
@@ -153,7 +166,7 @@ function PlacesLayer({
                 >
                     <Popup>
                         <div className="flex flex-col gap-1 min-w-[200px]">
-                            <h3 className="font-bold text-sm">{place.name}</h3>
+                            <h3 className="font-bold text-sm text-slate-800">{place.name}</h3>
                             <p className="text-xs text-slate-500 m-0">{place.address}</p>
                             {place.isApproved ? (
                                 <span className="text-xs text-emerald-600 font-semibold mt-1">
@@ -172,8 +185,8 @@ function PlacesLayer({
     );
 }
 
-export default function OSMMap({ places, selectedPlaceId, onSelectPlace, onMapDoubleClick, onMapMoveEnd }: OSMMapProps & { onMapMoveEnd?: (lat: number, lng: number) => void }) {
-    const defaultCenter: [number, number] = [28.6328, 77.2197]; // CP Delhi
+export default function OSMMap({ places, selectedPlaceId, onSelectPlace, onMapDoubleClick, onMapMoveEnd }) {
+    const defaultCenter = [28.6328, 77.2197]; // CP Delhi
     const selectedPlace = places.find(p => p.id === selectedPlaceId);
 
     return (
@@ -185,7 +198,7 @@ export default function OSMMap({ places, selectedPlaceId, onSelectPlace, onMapDo
             doubleClickZoom={!onMapDoubleClick} // Disable zoom if we have a handler
         >
             <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
 

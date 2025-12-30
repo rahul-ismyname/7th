@@ -20,7 +20,7 @@ const customIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
-function ClickHandler({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
+function ClickHandler({ onLocationSelect }) {
     useMapEvents({
         click: (e) => {
             onLocationSelect(e.latlng.lat, e.latlng.lng);
@@ -29,7 +29,7 @@ function ClickHandler({ onLocationSelect }: { onLocationSelect: (lat: number, ln
     return null;
 }
 
-function ViewUpdater({ coords }: { coords: [number, number] | null }) {
+function ViewUpdater({ coords }) {
     const map = useMap();
     useEffect(() => {
         if (coords) {
@@ -39,8 +39,8 @@ function ViewUpdater({ coords }: { coords: [number, number] | null }) {
     return null;
 }
 
-export default function LocationPicker({ onLocationSelect, coordinates }: { onLocationSelect: (lat: number, lng: number) => void, coordinates?: { lat: number, lng: number } }) {
-    const [position, setPosition] = useState<[number, number] | null>(coordinates ? [coordinates.lat, coordinates.lng] : null);
+export default function LocationPicker({ onLocationSelect, coordinates }) {
+    const [position, setPosition] = useState(coordinates ? [coordinates.lat, coordinates.lng] : null);
 
     // Sync internal state if external props change (e.g. from Auto-Location)
     useEffect(() => {

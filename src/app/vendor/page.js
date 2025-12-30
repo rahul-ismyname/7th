@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useMemo } from "react";
-import { usePlaces, Ticket } from "@/context/PlacesContext";
+import { usePlaces } from "@/context/PlacesContext";
 import { supabase } from "@/lib/supabase";
 import {
     LayoutDashboard,
@@ -16,7 +16,8 @@ import {
     ArrowLeft,
     Users,
     Sparkles,
-    MapPin
+    MapPin,
+    Timer
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
@@ -30,18 +31,19 @@ const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), 
 export default function VendorPage() {
     const { user, vendorPlaces, addPlace, removePlace, updateTicketStatus, callNextTicket } = usePlaces();
 
-    const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-    const [vendorTickets, setVendorTickets] = useState<Ticket[]>([]);
+    const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+    const [vendorTickets, setVendorTickets] = useState([]);
     const [isCreating, setIsCreating] = useState(false);
     const [showQR, setShowQR] = useState(false);
 
-    const [newPlace, setNewPlace] = useState<{ name: string, type: string, address: string, coordinates?: { lat: number, lng: number } }>({
+    const [newPlace, setNewPlace] = useState({
         name: "", type: "", address: ""
     });
 
-    // Local state for editing hours
+    // Local state for editing settings
     const [hours, setHours] = useState({ open: "09:00", close: "17:00" });
-    const [isSavingHours, setIsSavingHours] = useState(false);
+    const [avgTime, setAvgTime] = useState(5);
+    const [isSavingSettings, setIsSavingSettings] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
 
     const [greeting, setGreeting] = useState("Good morning");
@@ -56,8 +58,6 @@ export default function VendorPage() {
     }, []);
 
     const myPlaces = useMemo(() => vendorPlaces, [vendorPlaces]);
-
-    // ... (existing effects)
 
     // Close mobile menu when a place is selected
     useEffect(() => {
@@ -75,7 +75,7 @@ export default function VendorPage() {
                 .order('created_at', { ascending: true });
 
             if (data) {
-                const mapped: Ticket[] = data.map((t: any) => ({
+                const mapped = data.map((t) => ({
                     placeId: t.place_id,
                     ticketId: t.id,
                     tokenNumber: t.token_number,
@@ -111,29 +111,31 @@ export default function VendorPage() {
                     open: place.openingTime || "09:00",
                     close: place.closingTime || "17:00"
                 });
+                setAvgTime(place.averageServiceTime || 5);
             }
         }
     }, [selectedPlaceId, vendorPlaces]);
 
-    const handleSaveHours = async () => {
+    const handleSaveSettings = async () => {
         if (!selectedPlaceId) return;
-        setIsSavingHours(true);
+        setIsSavingSettings(true);
 
         const { error } = await supabase
             .from('places')
             .update({
                 opening_time: hours.open,
-                closing_time: hours.close
+                closing_time: hours.close,
+                average_service_time: Number(avgTime)
             })
             .eq('id', selectedPlaceId);
 
         if (error) {
-            console.error("Error updating hours:", error);
-            alert("Failed to update working hours");
+            console.error("Error updating settings:", error);
+            alert("Failed to update settings");
         } else {
-            alert("Working hours updated!");
+            alert("Settings updated successfully!");
         }
-        setIsSavingHours(false);
+        setIsSavingSettings(false);
     };
 
     if (!user) {
@@ -153,7 +155,7 @@ export default function VendorPage() {
         );
     }
 
-    const handleCreateBusiness = (e: React.FormEvent) => {
+    const handleCreateBusiness = (e) => {
         e.preventDefault();
         if (!newPlace.coordinates) {
             alert("Please select a location on the map.");
@@ -175,8 +177,6 @@ export default function VendorPage() {
         setIsCreating(false);
         setNewPlace({ name: "", type: "", address: "" });
     };
-
-    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const handleGetLocation = () => {
         if (!navigator.geolocation) {
@@ -229,13 +229,9 @@ export default function VendorPage() {
             return;
         }
 
-        setDeleteLoading(true);
-
-        // Import dynamically to avoid issues
+        // Dynamic import to avoid SSR issues if any, though likely safe as is
         const { requestBusinessDeletion } = await import("@/actions/business");
         const result = await requestBusinessDeletion(selectedPlaceId, user.email, place.name);
-
-        setDeleteLoading(false);
 
         if (result.success) {
             alert("📧 Confirmation email sent! Check your inbox and click the link to confirm deletion.");
@@ -254,7 +250,7 @@ export default function VendorPage() {
             await updateTicketStatus(t.ticketId, 'completed');
         }
         await updateTicketStatus(nextTicket.ticketId, 'serving');
-        await callNextTicket(selectedPlaceId!, nextTicket.tokenNumber);
+        await callNextTicket(selectedPlaceId, nextTicket.tokenNumber);
     };
 
     const selectedPlace = myPlaces.find(p => p.id === selectedPlaceId);
@@ -323,14 +319,12 @@ export default function VendorPage() {
 
             {/* QR Modal */}
             {showQR && selectedPlaceId && (
-                // ... (QR Modal Code preserved)
                 <>
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in print:hidden">
                         <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center relative animate-in zoom-in-95">
                             <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-900 transition-colors">
                                 <XCircle className="w-6 h-6" />
                             </button>
-                            {/* ... Content ... */}
                             <div className="mb-6">
                                 <h2 className="text-2xl font-black text-slate-900 mb-1">{selectedPlace?.name}</h2>
                                 <p className="text-slate-500 font-medium">Scan to join queue</p>
@@ -630,12 +624,27 @@ export default function VendorPage() {
                                         />
                                     </div>
                                     <button
-                                        onClick={handleSaveHours}
-                                        disabled={isSavingHours}
+                                        onClick={handleSaveSettings}
+                                        disabled={isSavingSettings}
                                         className="px-4 md:px-8 py-3 md:py-4 bg-slate-900 text-white font-bold rounded-xl md:rounded-2xl hover:bg-black transition-all disabled:opacity-50 text-sm md:text-base"
                                     >
-                                        {isSavingHours ? "..." : "Save"}
+                                        {isSavingSettings ? "..." : "Save"}
                                     </button>
+                                </div>
+                                <div className="mt-4 flex flex-col md:flex-row gap-4">
+                                    <div className="flex-1 md:max-w-xs">
+                                        <label className="text-[10px] md:text-xs font-bold text-slate-500 mb-2 block">Avg. Service Time (mins)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={avgTime}
+                                                onChange={e => setAvgTime(e.target.value)}
+                                                className="w-full p-3 md:p-4 pl-12 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all text-sm md:text-base"
+                                            />
+                                            <Timer className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 mt-1 font-medium">This updates automatically based on reviews.</p>
+                                    </div>
                                 </div>
                             </div>
 

@@ -1,16 +1,9 @@
 "use client";
 
-import { Place } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { MapPin } from "lucide-react";
 
-interface MapCanvasProps {
-    places: Place[];
-    selectedPlaceId?: string;
-    onSelectPlace: (id: string) => void;
-}
-
-export function MapCanvas({ places, selectedPlaceId, onSelectPlace }: MapCanvasProps) {
+export function MapCanvas({ places, selectedPlaceId, onSelectPlace }) {
     return (
         <div className="relative w-full h-full bg-slate-50 overflow-hidden">
             {/* Background Pattern */}

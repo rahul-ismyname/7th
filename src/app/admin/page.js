@@ -8,11 +8,11 @@ import Link from "next/link";
 
 export default function AdminPage() {
     const { user } = usePlaces();
-    const [allPlaces, setAllPlaces] = useState<any[]>([]);
+    const [allPlaces, setAllPlaces] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [errorMsg, setErrorMsg] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
-    const [activeTab, setActiveTab] = useState<'pending' | 'live' | 'all'>('pending');
+    const [activeTab, setActiveTab] = useState('pending');
 
     const fetchAllPlaces = async () => {
         setLoading(true);
@@ -59,7 +59,7 @@ export default function AdminPage() {
         return () => { supabase.removeChannel(channel); };
     }, []);
 
-    const updateStatus = async (placeId: string, isApproved: boolean) => {
+    const updateStatus = async (placeId, isApproved) => {
         const { error } = await supabase
             .from('places')
             .update({ is_approved: isApproved })
@@ -72,7 +72,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleDelete = async (placeId: string) => {
+    const handleDelete = async (placeId) => {
         if (!confirm("Are you sure you want to delete this business? This cannot be undone.")) return;
 
         const { error } = await supabase

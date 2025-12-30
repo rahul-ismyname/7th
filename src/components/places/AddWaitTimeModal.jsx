@@ -5,19 +5,11 @@ import { X, Clock, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
-import { Place } from "@/lib/data";
-
-interface AddWaitTimeModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    place: Place;
-}
-
-export function AddWaitTimeModal({ isOpen, onClose, place }: AddWaitTimeModalProps) {
-    const [step, setStep] = useState<"input" | "success">("input");
+export function AddWaitTimeModal({ isOpen, onClose, place }) {
+    const [step, setStep] = useState("input");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [waitTime, setWaitTime] = useState(place.liveWaitTime || 15);
-    const [crowdLevel, setCrowdLevel] = useState<"Low" | "Medium" | "High">((place.crowdLevel) || "Medium");
+    const [crowdLevel, setCrowdLevel] = useState((place.crowdLevel) || "Medium");
 
     if (!isOpen) return null;
 
@@ -108,7 +100,7 @@ export function AddWaitTimeModal({ isOpen, onClose, place }: AddWaitTimeModalPro
                                     {["Low", "Medium", "High"].map((level) => (
                                         <button
                                             key={level}
-                                            onClick={() => setCrowdLevel(level as any)}
+                                            onClick={() => setCrowdLevel(level)}
                                             className={cn(
                                                 "py-3 px-2 rounded-xl text-sm font-bold border transition-all",
                                                 crowdLevel === level

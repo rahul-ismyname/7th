@@ -3,11 +3,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendWelcomeEmail } from './email';
 
-export async function signupUser(formData: FormData) {
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+export async function signupUser(formData) {
+    const email = formData.get('email');
+    const password = formData.get('password');
 
-    const role = formData.get('role') as string || 'user'; // Default to user if not specified
+    const role = formData.get('role') || 'user'; // Default to user if not specified
 
     // Validate role to prevent arbitrary role assignment if we had admin roles
     const safeRole = ['user', 'vendor'].includes(role) ? role : 'user';
@@ -119,7 +119,7 @@ export async function signupUser(formData: FormData) {
 
         return { success: true, message: "Account created! Please verify your email via the link sent to your inbox." };
 
-    } catch (err: any) {
+    } catch (err) {
         console.error("Signup Exception:", err);
         return { error: err.message || "Unknown server error" };
     }
@@ -127,8 +127,8 @@ export async function signupUser(formData: FormData) {
 
 import { sendPasswordResetEmail } from './email';
 
-export async function requestPasswordReset(formData: FormData) {
-    const email = formData.get('email') as string;
+export async function requestPasswordReset(formData) {
+    const email = formData.get('email');
 
     // Admin init (duplicated here or extracted? It's inside signupUser currently. 
     // Let's create a getAdminClient helper or just init again locally since we need scope safety)
@@ -165,13 +165,13 @@ export async function requestPasswordReset(formData: FormData) {
 
         if (!emailResult.success) {
             const errString = emailResult?.error ?
-                (typeof emailResult.error === 'object' && 'message' in (emailResult.error as any) ? (emailResult.error as any).message : JSON.stringify(emailResult.error))
+                (typeof emailResult.error === 'object' && 'message' in emailResult.error ? emailResult.error.message : JSON.stringify(emailResult.error))
                 : "Unknown error";
             return { error: `Failed to send email: ${errString}` };
         }
 
         return { success: true };
-    } catch (e: any) {
+    } catch (e) {
         return { error: e.message };
     }
 }

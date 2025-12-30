@@ -1,16 +1,18 @@
 "use client";
 
-import { Place } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { MapPin, Star, BadgeCheck, Activity } from "lucide-react";
+import { MapPin, Star, BadgeCheck, Activity, Landmark, Stethoscope, Utensils, Building2, Library, Store, Clock } from "lucide-react";
 
-interface PlaceListProps {
-    places: Place[];
-    onSelect: (id: string) => void;
-    selectedId?: string;
-}
+const CATEGORY_ICONS = {
+    Bank: Landmark,
+    Clinic: Stethoscope,
+    Restaurant: Utensils,
+    Government: Building2,
+    "Public Service": Library,
+    default: Store
+};
 
-export function PlaceList({ places, onSelect, selectedId }: PlaceListProps) {
+export function PlaceList({ places, onSelect, selectedId }) {
     return (
         <div className="flex flex-col gap-2 p-4 pb-24 overflow-y-auto h-full">
             <div className="flex items-center justify-between px-2 mb-2">
@@ -20,6 +22,8 @@ export function PlaceList({ places, onSelect, selectedId }: PlaceListProps) {
 
             {places.map((place) => {
                 const isActive = selectedId === place.id;
+
+                const Icon = CATEGORY_ICONS[place.type] || CATEGORY_ICONS.default;
 
                 return (
                     <button
@@ -33,13 +37,12 @@ export function PlaceList({ places, onSelect, selectedId }: PlaceListProps) {
                         )}
                         style={{ willChange: "transform" }}
                     >
-                        {/* Rating Circle */}
+                        {/* Icon Square */}
                         <div className={cn(
-                            "flex flex-col items-center justify-center w-12 h-12 rounded-2xl shrink-0 font-black text-sm",
-                            isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-900"
+                            "flex flex-col items-center justify-center w-12 h-12 rounded-2xl shrink-0 font-black text-sm transition-colors",
+                            isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600"
                         )}>
-                            {place.rating}
-                            <span className="text-[10px] items-center flex opacity-60"><Star className="w-2 h-2 mr-0.5" /></span>
+                            <Icon className="w-6 h-6" />
                         </div>
 
                         {/* Text Info */}
@@ -54,22 +57,15 @@ export function PlaceList({ places, onSelect, selectedId }: PlaceListProps) {
                             </p>
                         </div>
 
-                        {/* Status Badge */}
-                        <div className="shrink-0">
-                            {place.isApproved ? (
-                                <div className={cn(
-                                    "px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5",
-                                    isActive ? "bg-white text-indigo-600" : "bg-emerald-50 text-emerald-600"
-                                )}>
-                                    <BadgeCheck className="w-3 h-3" />
-                                    Join
-                                </div>
-                            ) : (
-                                <div className={cn(
-                                    "w-2 h-2 rounded-full",
-                                    place.crowdLevel === 'High' ? "bg-rose-500" : "bg-amber-500"
-                                )} />
-                            )}
+                        {/* Status / Time */}
+                        <div className="shrink-0 text-right">
+                            <div className={cn(
+                                "text-sm font-bold flex items-center justify-end gap-1",
+                                isActive ? "text-white" : "text-slate-600"
+                            )}>
+                                <Clock className="w-3.5 h-3.5 opacity-50" />
+                                {place.liveWaitTime} m
+                            </div>
                         </div>
                     </button>
                 );

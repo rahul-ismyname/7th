@@ -13,7 +13,7 @@ export default function ProfilePage() {
     const router = useRouter();
 
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [message, setMessage] = useState(null);
 
     // Profile State
     const [displayName, setDisplayName] = useState(user?.user_metadata?.display_name || "");
@@ -27,7 +27,7 @@ export default function ProfilePage() {
         marketing: false
     });
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarUpload = async (e) => {
         try {
             setUploading(true);
 
@@ -60,7 +60,7 @@ export default function ProfilePage() {
                 setMessage({ type: 'success', text: "Profile picture updated!" });
             }
 
-        } catch (error: any) {
+        } catch (error) {
             setMessage({ type: 'error', text: error.message });
         } finally {
             setUploading(false);
@@ -71,7 +71,7 @@ export default function ProfilePage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
-    const handleUpdateProfile = async (e: React.FormEvent) => {
+    const handleUpdateProfile = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
@@ -83,7 +83,7 @@ export default function ProfilePage() {
 
             if (error) throw error;
             setMessage({ type: 'success', text: "Profile updated successfully!" });
-        } catch (err: any) {
+        } catch (err) {
             setMessage({ type: 'error', text: err.message });
         } finally {
             setLoading(false);
@@ -96,7 +96,7 @@ export default function ProfilePage() {
         '/avatars/ninja.png',
     ];
 
-    const handlePresetSelect = async (url: string) => {
+    const handlePresetSelect = async (url) => {
         try {
             setLoading(true);
             const { error } = await supabase.auth.updateUser({
@@ -107,14 +107,14 @@ export default function ProfilePage() {
 
             setAvatarUrl(url);
             setMessage({ type: 'success', text: "Avatar updated!" });
-        } catch (error: any) {
+        } catch (error) {
             setMessage({ type: 'error', text: error.message });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleUpdatePassword = async (e: React.FormEvent) => {
+    const handleUpdatePassword = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
@@ -140,7 +140,7 @@ export default function ProfilePage() {
             setMessage({ type: 'success', text: "Password updated successfully!" });
             setPassword("");
             setConfirmPassword("");
-        } catch (err: any) {
+        } catch (err) {
             setMessage({ type: 'error', text: err.message });
         } finally {
             setLoading(false);
@@ -287,7 +287,6 @@ export default function ProfilePage() {
                                         </span>
                                     </div>
                                 ))}
-                                <button className="w-full py-2 text-sm font-bold text-slate-400 hover:text-indigo-600 transition-colors">View All History</button>
                             </div>
                         </div>
 

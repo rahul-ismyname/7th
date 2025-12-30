@@ -1,6 +1,5 @@
 "use client";
 
-import { Place } from "@/lib/data";
 import { cn, calculateDistance } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import {
@@ -17,16 +16,11 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AddWaitTimeModal } from "./AddWaitTimeModal";
-import { JoinQueueModal, JoinQueueFormData } from "./JoinQueueModal";
+import { JoinQueueModal } from "./JoinQueueModal";
 import { ReviewFlowModal } from "./ReviewFlowModal";
 import { usePlaces } from "@/context/PlacesContext";
 
-interface PlaceDetailsProps {
-    place: Place;
-    onBack: () => void;
-}
-
-export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
+export function PlaceDetails({ place, onBack }) {
     const { activeTickets, joinQueue, leaveQueue, submitReview, completeTicket } = usePlaces();
     const [showWaitTimeModal, setShowWaitTimeModal] = useState(false);
     const [showJoinModal, setShowJoinModal] = useState(false);
@@ -38,7 +32,7 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
     const hasJoined = !!myTicket;
 
     // Dynamic Wait Time Logic
-    const [peopleAhead, setPeopleAhead] = useState<number | null>(null);
+    const [peopleAhead, setPeopleAhead] = useState(null);
 
     // Fetch position in queue for JOINED users
 
@@ -60,11 +54,7 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
 
                 setIsJoining(false);
 
-                if (dist > 20) {
-                    alert(`You are too far away (${dist.toFixed(1)}km). You must be within 20km to join.`);
-                } else {
-                    setShowJoinModal(true);
-                }
+                setShowJoinModal(true);
             },
             (error) => {
                 setIsJoining(false);
@@ -97,7 +87,7 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
         // For now, fetch on mount/ticket change is MVP sufficient
     }, [myTicket, place.id]);
 
-    const handleReviewSubmit = async (data: { actualWaitTime?: number; counterUsed?: string }) => {
+    const handleReviewSubmit = async (data) => {
         if (!myTicket) return;
         try {
             await submitReview(myTicket.ticketId, data);
@@ -116,7 +106,7 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
         }
     };
 
-    const handleConfirmJoin = async (formData: JoinQueueFormData) => {
+    const handleConfirmJoin = async (formData) => {
         if (hasJoined || isJoining) return;
         setIsJoining(true);
 
@@ -270,17 +260,28 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
-                                                <span className="text-muted-foreground font-medium">People ahead of you</span>
-                                                <span className="font-mono font-bold text-foreground">{peopleAhead !== null ? peopleAhead : '...'}</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
-                                                <span className="text-muted-foreground font-medium">Your Est. Wait</span>
-                                                <span className="font-bold text-foreground">
-                                                    {peopleAhead !== null ? `~${(peopleAhead + 1) * 5} min` : 'Calculating...'}
-                                                </span>
-                                            </div>
+                                        <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
+                                            <span className="text-muted-foreground font-medium">People ahead of you</span>
+                                            <span className="font-mono font-bold text-foreground">{peopleAhead !== null ? peopleAhead : '...'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
+                                            <span className="text-muted-foreground font-medium">Your Est. Wait</span>
+                                            <span className="font-bold text-foreground">
+                                                {peopleAhead !== null ? (
+                                                    <span className="text-indigo-600">
+                                                        ~{(peopleAhead + 1) * (place.average_service_time || 5)} min
+                                                    </span>
+                                                ) : 'Calculating...'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between text-sm py-3 border-b border-border border-dashed">
+                                            <span className="text-muted-foreground font-medium">Est. Turn Time</span>
+                                            <span className="font-bold text-foreground">
+                                                {peopleAhead !== null ? (
+                                                    new Date(Date.now() + ((peopleAhead + 1) * (place.average_service_time || 5) * 60000))
+                                                        .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                ) : '--:--'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -324,6 +325,18 @@ export function PlaceDetails({ place, onBack }: PlaceDetailsProps) {
                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Your Token</span>
                                     <div className="text-4xl font-mono font-black text-slate-800 mt-2 tracking-tight">
                                         #{myTicket?.tokenNumber || "..."}
+                                    </div>
+                                    {/* Estimated Time Display */}
+                                    <div className="mt-4 pt-4 border-t border-emerald-100 flex flex-col items-center">
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                            <Clock className="w-3 h-3" /> Est. Time
+                                        </span>
+                                        <div className="text-xl font-bold text-slate-700 mt-1">
+                                            {peopleAhead !== null ? (
+                                                new Date(Date.now() + ((peopleAhead + 1) * (place.average_service_time || 5) * 60000))
+                                                    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                            ) : '--:--'}
+                                        </div>
                                     </div>
                                 </div>
 
