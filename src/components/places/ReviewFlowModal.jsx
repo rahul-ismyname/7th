@@ -1,15 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Check, Timer, } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function ReviewFlowModal({ isOpen, onClose, place, onComplete, onSubmit }) {
+export function ReviewFlowModal({ isOpen, onClose, place, ticket, onComplete, onSubmit }) {
     const [step, setStep] = useState(1);
-    const [waitTime, setWaitTime] = useState(20);
+    const [waitTime, setWaitTime] = useState(15);
     const [counterUsed, setCounterUsed] = useState("");
     const [otherCounter, setOtherCounter] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Initialize/Update wait time based on actual elapsed time when modal opens
+    useEffect(() => {
+        if (isOpen && ticket) {
+            // Default to the ESTIMATED wait time (as requested by user), so they can just click confirm
+            if (ticket.estimatedWait) {
+                setWaitTime(ticket.estimatedWait);
+            } else {
+                // Fallback to elapsed if for some reason estimated is missing
+                const start = ticket.timestamp || Date.now();
+                const elapsed = Math.max(1, Math.round((Date.now() - start) / 60000));
+                setWaitTime(elapsed);
+            }
+        }
+    }, [isOpen, ticket]);
 
     if (!isOpen) return null;
 

@@ -301,51 +301,17 @@ export function PlacesProvider({ children }) {
     };
 
     const submitReview = async (ticketId, data) => {
-        const updateData = {
-            has_feedback_provided: true
-        };
+        // Dynamic import of Server Action to avoid bundling issues
+        const { submitReviewAction } = await import("@/actions/tickets");
 
-        if (data.actualWaitTime) updateData.actual_wait_time = data.actualWaitTime;
-        if (data.counterUsed) updateData.counter_used = data.counterUsed;
+        const result = await submitReviewAction(ticketId, data);
 
-        // 1. Update Ticket Review
-        const { data: ticketData, error } = await supabase
-            .from('tickets')
-            .update(updateData)
-            .eq('id', ticketId)
-            .select('place_id')
-            .single();
-
-        if (error) {
-            console.error("Error submitting review:", error);
-            throw error;
+        if (!result.success) {
+            console.error("Error submitting review:", result.error);
+            throw new Error(result.error);
         }
 
-        // 2. Update Place Average Service Time (Exponential Moving Average)
-        if (data.actualWaitTime && ticketData?.place_id) {
-            const placeId = ticketData.place_id;
-            const currentPlace = places.find(p => p.id === placeId);
-
-            if (currentPlace) {
-                const oldAvg = currentPlace.averageServiceTime || 5;
-                const reportedTime = Number(data.actualWaitTime);
-
-                // Alpha = 0.1 means strictly "10%" weight to new feedback.
-                // This fits the user requirement: "one user cannot change (much), but a group will".
-                const alpha = 0.1;
-                const newAvg = Math.round((oldAvg * (1 - alpha)) + (reportedTime * alpha));
-
-                // Only update if it changed
-                if (newAvg !== oldAvg) {
-                    await supabase
-                        .from('places')
-                        .update({ average_service_time: newAvg })
-                        .eq('id', placeId);
-
-                    console.log(`Updated Place ${placeId} Avg Time: ${oldAvg} -> ${newAvg}`);
-                }
-            }
-        }
+        // Success! Realtime subscription will receive the updated Place average time automatically.
     };
 
     const toggleQueueStatus = async (placeId, isOpen) => {
@@ -383,7 +349,8 @@ export function PlacesProvider({ children }) {
                 lng: place.coordinates.lng,
                 live_wait_time: place.liveWaitTime,
                 crowd_level: place.crowdLevel,
-                owner_id: user.id // Set the owner!
+                owner_id: user.id, // Set the owner!
+                average_service_time: place.averageServiceTime || 5
             }]);
 
         if (error) {

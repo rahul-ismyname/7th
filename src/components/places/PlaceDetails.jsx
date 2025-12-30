@@ -26,7 +26,7 @@ export function PlaceDetails({ place, onBack }) {
     const { activeTickets, joinQueue, leaveQueue, submitReview, completeTicket } = usePlaces();
     const [showWaitTimeModal, setShowWaitTimeModal] = useState(false);
     const [showJoinModal, setShowJoinModal] = useState(false);
-    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [reviewTicket, setReviewTicket] = useState(null);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
 
@@ -394,7 +394,7 @@ export function PlaceDetails({ place, onBack }) {
                                     <div className="w-full space-y-2.5">
                                         <button
                                             onClick={() => {
-                                                if (myTicket) setShowReviewModal(true);
+                                                if (myTicket) setReviewTicket(myTicket);
                                             }}
                                             className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-slate-900/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm"
                                         >
@@ -424,10 +424,14 @@ export function PlaceDetails({ place, onBack }) {
             />
 
             <ReviewFlowModal
-                isOpen={showReviewModal}
-                onClose={() => setShowReviewModal(false)}
-                ticketId={myTicket?.ticketId}
-                onSubmit={submitReview}
+                isOpen={!!reviewTicket}
+                onClose={() => setReviewTicket(null)}
+                ticket={reviewTicket}
+                place={place}
+                onComplete={async () => {
+                    if (reviewTicket) await completeTicket(reviewTicket.ticketId);
+                }}
+                onSubmit={(data) => submitReview(reviewTicket?.ticketId, data)}
             />
 
             <CancelTicketModal

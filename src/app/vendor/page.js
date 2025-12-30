@@ -36,120 +36,49 @@ export default function VendorPage() {
     const [isCreating, setIsCreating] = useState(false);
     const [showQR, setShowQR] = useState(false);
 
-    const [newPlace, setNewPlace] = useState({
-        name: "", type: "", address: ""
-    });
-
-    // Local state for editing settings
-    const [hours, setHours] = useState({ open: "09:00", close: "17:00" });
-    const [avgTime, setAvgTime] = useState(5);
-    const [isSavingSettings, setIsSavingSettings] = useState(false);
-    const [isLocating, setIsLocating] = useState(false);
-
-    const [greeting, setGreeting] = useState("Good morning");
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-    // Time-based greeting
+    // Set mode to vendor on mount
     useEffect(() => {
-        const hour = new Date().getHours();
-        if (hour < 12) setGreeting("Good morning");
-        else if (hour < 18) setGreeting("Good afternoon");
-        else setGreeting("Good evening");
+        localStorage.setItem("waitly_mode", "vendor");
     }, []);
 
-    const myPlaces = useMemo(() => vendorPlaces, [vendorPlaces]);
+    const [newPlace, setNewPlace] = useState({
+        name: "", type: "", address: "", avgTime: 5
+    });
 
-    // Close mobile menu when a place is selected
-    useEffect(() => {
-        setMobileMenuOpen(false);
-    }, [selectedPlaceId, isCreating]);
-
-    useEffect(() => {
-        if (!selectedPlaceId) return;
-
-        const fetchTickets = async () => {
-            const { data } = await supabase
-                .from('tickets')
-                .select('*')
-                .eq('place_id', selectedPlaceId)
-                .order('created_at', { ascending: true });
-
-            if (data) {
-                const mapped = data.map((t) => ({
-                    placeId: t.place_id,
-                    ticketId: t.id,
-                    tokenNumber: t.token_number,
-                    estimatedWait: t.estimated_wait,
-                    timestamp: new Date(t.created_at).getTime(),
-                    status: t.status
-                }));
-                setVendorTickets(mapped);
-            }
-        };
-
-        fetchTickets();
-
-        const channel = supabase
-            .channel(`vendor_tickets_${selectedPlaceId}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'tickets',
-                filter: `place_id=eq.${selectedPlaceId}`
-            }, () => fetchTickets())
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
-    }, [selectedPlaceId]);
-
-    // Update local state when selected place changes
-    useEffect(() => {
-        if (selectedPlaceId) {
-            const place = vendorPlaces.find(p => p.id === selectedPlaceId);
-            if (place) {
-                setHours({
-                    open: place.openingTime || "09:00",
-                    close: place.closingTime || "17:00"
-                });
-                setAvgTime(place.averageServiceTime || 5);
-            }
-        }
-    }, [selectedPlaceId, vendorPlaces]);
-
-    const handleSaveSettings = async () => {
-        if (!selectedPlaceId) return;
-        setIsSavingSettings(true);
-
-        const { error } = await supabase
-            .from('places')
-            .update({
-                opening_time: hours.open,
-                closing_time: hours.close,
-                average_service_time: Number(avgTime)
-            })
-            .eq('id', selectedPlaceId);
-
-        if (error) {
-            console.error("Error updating settings:", error);
-            alert("Failed to update settings");
-        } else {
-            alert("Settings updated successfully!");
-        }
-        setIsSavingSettings(false);
-    };
+    // ... (keep intervening code)
 
     if (!user) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-                <div className="text-center bg-white rounded-3xl p-10 shadow-xl max-w-sm">
-                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                        <Store className="w-8 h-8 text-white" />
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 relative overflow-hidden">
+                {/* Background Blobs */}
+                <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/20 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-violet-500/20 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
+
+                <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl relative z-10 text-center animate-in zoom-in-95 duration-500">
+                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-500/30">
+                        <Store className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold mb-2">Vendor Portal</h1>
-                    <p className="text-slate-500 mb-6">Log in to manage your business queues</p>
-                    <Link href="/login" className="block w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold hover:shadow-lg transition-all">
-                        Log In to Continue
+
+                    <h1 className="text-3xl md:text-4xl font-black text-white mb-3 tracking-tight">Business Portal</h1>
+                    <p className="text-indigo-200 font-medium text-lg mb-8 leading-relaxed">
+                        Manage your queues, track analytics, and grow your business with Waitly.
+                    </p>
+
+                    <Link
+                        href="/login?role=vendor"
+                        className="group relative w-full flex items-center justify-center px-8 py-4 bg-white text-slate-900 rounded-2xl font-bold text-lg hover:bg-indigo-50 transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98]"
+                    >
+                        <span className="relative z-10 flex items-center gap-2">
+                            Log In to Dashboard
+                            <ArrowLeft className="w-5 h-5 rotate-180 group-hover:translate-x-1 transition-transform" />
+                        </span>
                     </Link>
+
+                    <div className="mt-8 pt-6 border-t border-white/10">
+                        <Link href="/" className="text-white/40 hover:text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                            <ArrowLeft className="w-4 h-4" /> Back to App
+                        </Link>
+                    </div>
                 </div>
             </div>
         );
@@ -172,10 +101,11 @@ export default function VendorPage() {
             liveWaitTime: 0,
             crowdLevel: 'Low',
             queueLength: 0,
-            coordinates: newPlace.coordinates
+            coordinates: newPlace.coordinates,
+            averageServiceTime: Number(newPlace.avgTime) // Pass the initial time
         });
         setIsCreating(false);
-        setNewPlace({ name: "", type: "", address: "" });
+        setNewPlace({ name: "", type: "", address: "", avgTime: 5 });
     };
 
     const handleGetLocation = () => {
@@ -309,7 +239,11 @@ export default function VendorPage() {
                         </div>
 
                         <div className="p-4 border-t border-slate-100 bg-slate-50">
-                            <Link href="/" className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">
+                            <Link
+                                href="/"
+                                onClick={() => localStorage.setItem("waitly_mode", "user")}
+                                className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
+                            >
                                 <ArrowLeft className="w-4 h-4" /> Exit to App
                             </Link>
                         </div>
@@ -475,7 +409,7 @@ export default function VendorPage() {
 
                             <form onSubmit={handleCreateBusiness} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
+                                    <div className="md:col-span-2">
                                         <label className="block text-sm font-bold text-slate-700 mb-2">Business Name</label>
                                         <input
                                             value={newPlace.name}
@@ -501,6 +435,21 @@ export default function VendorPage() {
                                             <option value="Salon">Salon</option>
                                             <option value="Other">Other</option>
                                         </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Avg. Service Time (mins)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={newPlace.avgTime}
+                                                onChange={e => setNewPlace({ ...newPlace, avgTime: e.target.value })}
+                                                className="w-full p-4 pl-12 bg-slate-50 border-2 border-transparent rounded-xl font-medium focus:border-indigo-500 focus:bg-white outline-none transition-all"
+                                                placeholder="e.g. 5"
+                                                required
+                                            />
+                                            <Timer className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -638,12 +587,13 @@ export default function VendorPage() {
                                             <input
                                                 type="number"
                                                 value={avgTime}
-                                                onChange={e => setAvgTime(e.target.value)}
-                                                className="w-full p-3 md:p-4 pl-12 bg-slate-50 rounded-xl md:rounded-2xl font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-indigo-100 outline-none transition-all text-sm md:text-base"
+                                                readOnly
+                                                disabled
+                                                className="w-full p-3 md:p-4 pl-12 bg-slate-100 rounded-xl md:rounded-2xl font-bold text-slate-500 border-2 border-transparent outline-none cursor-not-allowed text-sm md:text-base"
                                             />
                                             <Timer className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                         </div>
-                                        <p className="text-[10px] text-slate-400 mt-1 font-medium">This updates automatically based on reviews.</p>
+                                        <p className="text-[10px] text-slate-400 mt-1 font-medium">This updates automatically based on user reviews.</p>
                                     </div>
                                 </div>
                             </div>

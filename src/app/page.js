@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { usePlaces } from "@/context/PlacesContext";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 import dynamic from "next/dynamic";
 
@@ -41,6 +41,13 @@ function HomeContent() {
 
     // Get User Location on Mount
     useEffect(() => {
+        // Auto-redirect to vendor mode if that was the last used mode
+        const lastMode = localStorage.getItem("waitly_mode");
+        if (lastMode === "vendor") {
+            router.replace("/vendor");
+            return;
+        }
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
