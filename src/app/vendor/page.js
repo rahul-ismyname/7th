@@ -256,7 +256,7 @@ export default function VendorPage() {
     const selectedPlace = myPlaces.find(p => p.id === selectedPlaceId);
 
     return (
-        <div className="min-h-screen bg-white flex font-sans text-slate-900 overflow-hidden relative">
+        <div className="min-h-screen bg-white flex font-sans text-slate-900 md:overflow-hidden relative flex-col md:flex-row">
             {/* Mobile Drawer Overlay */}
             {mobileMenuOpen && (
                 <div className="fixed inset-0 z-50 md:hidden flex">
@@ -446,7 +446,7 @@ export default function VendorPage() {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-[100dvh] md:min-h-0 md:h-screen md:overflow-hidden">
                 {/* Mobile Header */}
                 <div className="md:hidden bg-gradient-to-r from-indigo-600 to-violet-600 p-4 flex justify-between items-center text-white shrink-0 z-20 shadow-md">
                     <div className="flex items-center gap-3">

@@ -14,7 +14,7 @@ const CATEGORY_ICONS = {
 
 export function PlaceList({ places, onSelect, selectedId }) {
     return (
-        <div className="flex flex-col gap-2 p-4 pb-24 overflow-y-auto h-full">
+        <div className="flex flex-col gap-2 p-4">
             <div className="flex items-center justify-between px-2 mb-2">
                 <h2 className="text-lg font-bold tracking-tight text-slate-800">Nearby</h2>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{places.length} Places</span>
