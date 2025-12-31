@@ -11,6 +11,8 @@ Waitly is a modern, real-time queue management application that eliminates physi
 - **Smart Notifications**: 
   - 5-minute warning before your turn
   - Instant alert when it's your turn
+- **User Ratings**: Rate your experience (1-5 stars) after your visit
+- **Claim Business**: Request ownership of unmanaged locations
 - **History Management**: View past visits and clear history
 - **Mobile-First Design**: Toggle between Map and List views on mobile
 
@@ -23,6 +25,7 @@ Waitly is a modern, real-time queue management application that eliminates physi
 
 ### Admin Portal
 - **Business Verification**: Approve/reject vendor registrations
+- **Claim Management**: Review and approve claims for existing businesses
 - **Stats Dashboard**: Total, pending, and approved business counts
 - **Full Oversight**: View all places and tickets across the platform
 
@@ -49,23 +52,18 @@ This app is a **Progressive Web App (PWA)**!
 - **Offline Capable**: Works even with spotty internet.
 - **App-like Feel**: No browser URL bar, full screen immersion.
 
-## 🛠️ Tech Stack
-| Layer | Technology |
-|-------|------------|
-| Framework | [Next.js 16+](https://nextjs.org/) (App Router, Turbopack) |
-| Database & Auth | [Supabase](https://supabase.com/) (PostgreSQL + Realtime) |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| Maps | [React Leaflet](https://react-leaflet.js.org/) + OpenStreetMap |
-| PWA | [@ducanh2912/next-pwa](https://github.com/DuCanhGH/next-pwa) |
-| Emails | Nodemailer + Gmail SMTP |
-
 ## ⚙️ Quick Start
 
 ### 1. Database Setup (Crucial)
 1.  Create a Supabase project.
 2.  Go to **SQL Editor**.
-3.  Copy the contents of `complete_schema.sql` from this repo.
-4.  Paste and Run. (This sets up Tables, RLS, Storage, and Indexes).
+3.  Copy the contents of `supabase/migrations/20251231055537_init_schema.sql`.
+4.  Paste and Run. (This sets up Tables, RLS, Storage, Indexes, and Functions).
+
+Alternatively, if you have the Supabase CLI:
+```bash
+npx supabase db push
+```
 
 ### 2. Environment Setup
 Create a `.env.local` file:
@@ -105,6 +103,7 @@ Open [http://localhost:3000](http://localhost:3000).
 *   **Virtual Queues**: Join from anywhere.
 *   **Real-time Estimates**: "Your turn in 5 mins".
 *   **Profile Customization**: Upload avatars or use Robot/Cat/Ninja presets.
+*   **User Ratings**: Rate businesses after service.
 *   **Admin Dashboard**: Manage business approvals.
 *   **Vendor Portal**: "Call Next", "No Show", QR Code generation.
 
