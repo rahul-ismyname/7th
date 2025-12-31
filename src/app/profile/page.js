@@ -148,9 +148,9 @@ export default function ProfilePage() {
     };
 
     const handleContactSupport = () => {
-        navigator.clipboard.writeText("waity2022@gmail.com");
+        navigator.clipboard.writeText("waitly2022@gmail.com");
         setMessage({ type: 'success', text: "Support email copied to clipboard!" });
-        window.location.href = "mailto:waity2022@gmail.com";
+        window.location.href = "mailto:waitly2022@gmail.com";
     };
 
     if (!user) {
@@ -413,7 +413,7 @@ export default function ProfilePage() {
                                 <div>
                                     <h3 className="text-2xl font-black mb-2">Need Help?</h3>
                                     <p className="text-indigo-100 font-medium mb-1">Have an issue with a recent visit?</p>
-                                    <p className="text-sm text-indigo-200 font-mono select-all">waity2022@gmail.com</p>
+                                    <p className="text-sm text-indigo-200 font-mono select-all">waitly2022@gmail.com</p>
                                 </div>
                                 <button
                                     onClick={handleContactSupport}
