@@ -198,7 +198,6 @@ export default function VendorLoginPage() {
                                     onClick={async () => {
                                         setIsLoading(true);
                                         // Set cookie validation for 10 minutes
-                                        document.cookie = "waitly_next=/vendor; path=/; max-age=600";
                                         localStorage.setItem("waitly_mode", "vendor");
 
                                         const { error } = await supabase.auth.signInWithOAuth({

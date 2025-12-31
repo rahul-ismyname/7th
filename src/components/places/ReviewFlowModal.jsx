@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Check, Timer, } from "lucide-react";
+import { X, Check, Timer, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ReviewFlowModal({ isOpen, onClose, place, ticket, onComplete, onSubmit }) {
     const [step, setStep] = useState(1);
     const [waitTime, setWaitTime] = useState(15);
+    const [rating, setRating] = useState(5); // New Rating State
     const [counterUsed, setCounterUsed] = useState("");
     const [otherCounter, setOtherCounter] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +46,8 @@ export function ReviewFlowModal({ isOpen, onClose, place, ticket, onComplete, on
         const finalCounter = counterUsed === "Other" ? otherCounter : counterUsed;
         await onSubmit({
             actualWaitTime: waitTime,
-            counterUsed: finalCounter
+            counterUsed: finalCounter,
+            rating: rating // Pass rating
         });
         setIsSubmitting(false);
         onClose();
@@ -53,6 +55,7 @@ export function ReviewFlowModal({ isOpen, onClose, place, ticket, onComplete, on
         setTimeout(() => {
             setStep(1);
             setWaitTime(20);
+            setRating(5);
             setCounterUsed("");
             setOtherCounter("");
         }, 500);
@@ -124,6 +127,38 @@ export function ReviewFlowModal({ isOpen, onClose, place, ticket, onComplete, on
                     )}
 
                     {step === 3 && (
+                        <div className="space-y-8 animate-in slide-in-from-right-8 fade-in duration-300">
+                            <h3 className="text-lg font-medium text-slate-600">
+                                Rate your experience
+                            </h3>
+
+                            <div className="flex justify-center gap-2">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                        key={star}
+                                        onClick={() => setRating(star)}
+                                        className="p-1 transition-transform hover:scale-110 active:scale-90"
+                                    >
+                                        <Star
+                                            className={cn(
+                                                "w-10 h-10 transition-colors",
+                                                star <= rating ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-50"
+                                            )}
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={handleNext}
+                                className="w-full py-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+
+                    {step === 4 && (
                         <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-300">
                             <h3 className="text-lg font-medium text-slate-600">
                                 Which Counter did you use?
