@@ -196,6 +196,9 @@ export default function VendorLoginPage() {
                                 <button
                                     onClick={async () => {
                                         setIsLoading(true);
+                                        // Set cookie validation for 10 minutes
+                                        document.cookie = "waitly_next=/vendor; path=/; max-age=600";
+
                                         const { error } = await supabase.auth.signInWithOAuth({
                                             provider: 'google',
                                             options: {
