@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Loader2, Compass, KeyRound, Store, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { signupUser, requestPasswordReset } from "@/actions/auth";
@@ -15,6 +15,9 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const nextPath = searchParams.get('next');
+    const role = searchParams.get('role');
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -55,8 +58,11 @@ export default function LoginPage() {
                     setMessage(error.message);
                 } else {
                     setMessage("Success! Redirecting...");
-                    localStorage.setItem("waitly_mode", "user");
-                    router.push("/");
+
+                    const isVendor = nextPath?.includes('/vendor') || role === 'vendor';
+                    localStorage.setItem("waitly_mode", isVendor ? "vendor" : "user");
+
+                    router.push(nextPath || "/");
                     router.refresh();
                 }
             }
@@ -127,10 +133,13 @@ export default function LoginPage() {
                                 <button
                                     onClick={async () => {
                                         setIsLoading(true);
+                                        const isVendor = nextPath?.includes('/vendor') || role === 'vendor';
+                                        const finalNext = nextPath || (isVendor ? '/vendor' : '/');
+
                                         const { error } = await supabase.auth.signInWithOAuth({
                                             provider: 'google',
                                             options: {
-                                                redirectTo: `${window.location.origin}/auth/callback`,
+                                                redirectTo: `${window.location.origin}/auth/callback?next=${finalNext}`,
                                             },
                                         });
                                         if (error) {

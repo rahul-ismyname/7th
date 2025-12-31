@@ -210,7 +210,7 @@ export default function VendorPage() {
                         </div>
 
                         <Link
-                            href="/login?role=vendor"
+                            href="/login?next=/vendor"
                             className="group relative w-full flex items-center justify-center px-8 py-4 bg-white/10 text-white rounded-2xl font-bold text-lg hover:bg-white/20 transition-all shadow-lg active:scale-[0.98] border border-white/20"
                         >
                             <span className="relative z-10 flex items-center gap-2">
