@@ -24,6 +24,7 @@ import { PlaceDetails } from "@/components/places/PlaceDetails";
 import { cn, calculateDistance } from "@/lib/utils";
 import { UserTickets } from "@/components/user/UserTickets";
 import { Search, Ticket, Store, MapPin, Clock, Users, Sparkles, ChevronRight, Bell } from "lucide-react";
+import { BottomNav } from "@/components/mobile/BottomNav";
 
 function HomeContent() {
     const { places, nearbyPlaces, fetchNearbyPlaces } = usePlaces();
@@ -256,33 +257,20 @@ function HomeContent() {
                 {/* Overlay gradient for better integration */}
                 <div className="absolute inset-y-0 left-0 pointer-events-none bg-gradient-to-r from-white/20 to-transparent w-16 z-10 hidden md:block" />
 
-                {/* Mobile View Toggle */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 md:hidden">
-                    <div className="bg-white/95 backdrop-blur-md rounded-full p-1.5 shadow-xl flex gap-1">
-                        <button
-                            onClick={() => setMobileView("list")}
-                            className={cn(
-                                "px-6 py-3 rounded-full font-bold text-sm transition-all",
-                                mobileView === "list"
-                                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md"
-                                    : "text-slate-600 hover:bg-slate-100"
-                            )}
-                        >
-                            List
-                        </button>
-                        <button
-                            onClick={() => setMobileView("map")}
-                            className={cn(
-                                "px-6 py-3 rounded-full font-bold text-sm transition-all",
-                                mobileView === "map"
-                                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md"
-                                    : "text-slate-600 hover:bg-slate-100"
-                            )}
-                        >
-                            Map
-                        </button>
-                    </div>
-                </div>
+                {/* Mobile Bottom Navigation */}
+                <BottomNav
+                    currentView={mobileView === 'list' && viewMode === 'tickets' ? 'tickets' : mobileView}
+                    onViewChange={(view) => {
+                        if (view === 'tickets') {
+                            setViewMode('tickets');
+                            setMobileView('list');
+                        } else {
+                            setViewMode('places');
+                            setMobileView(view);
+                        }
+                    }}
+                    activeTicketsCount={activeTickets.length}
+                />
             </section>
         </main >
     );
