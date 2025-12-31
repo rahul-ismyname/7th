@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { cn } from "@/lib/utils";
 
 // Fix Leaflet's default icon issue in Next.js
 const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
@@ -75,25 +76,94 @@ function MapClickHandler({ onDoubleClick }) {
 // Component to locate user
 function LocateUser() {
     const map = useMap();
+    const [isLocating, setIsLocating] = useState(false);
+    const [hasError, setHasError] = useState(false);
 
-    const handleLocate = () => {
-        map.locate().on("locationfound", function (e) {
-            map.flyTo(e.latlng, map.getZoom());
+    useEffect(() => {
+        const onLocationFound = (e) => {
+            setIsLocating(false);
+            setHasError(false);
+            map.flyTo(e.latlng, 16);
             L.popup()
                 .setLatLng(e.latlng)
                 .setContent("You are here")
                 .openOn(map);
-        });
+        };
+
+        const onLocationError = (e) => {
+            setIsLocating(false);
+            setHasError(true);
+
+
+            // Reset error state after 3 seconds
+            setTimeout(() => setHasError(false), 3000);
+        };
+
+        map.on('locationfound', onLocationFound);
+        map.on('locationerror', onLocationError);
+
+        return () => {
+            map.off('locationfound', onLocationFound);
+            map.off('locationerror', onLocationError);
+        };
+    }, [map]);
+
+    const handleLocate = () => {
+        setIsLocating(true);
+        setHasError(false);
+        map.locate({ setView: false, enableHighAccuracy: true });
     };
 
     return (
         <div className="absolute bottom-24 md:bottom-6 right-6 z-[1000]">
             <button
                 onClick={handleLocate}
-                className="p-3 bg-white rounded-full shadow-xl hover:bg-slate-50 text-slate-700 transition-all border border-slate-200 active:scale-95 flex items-center justify-center group"
+                disabled={isLocating}
+                className={cn(
+                    "p-3 rounded-full shadow-xl transition-all border flex items-center justify-center group relative overflow-hidden",
+                    // Default State
+                    "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-95",
+                    // Loading State
+                    isLocating && "ring-4 ring-indigo-100 text-indigo-600 border-indigo-200 cursor-wait",
+                    // Error State
+                    hasError && "bg-red-50 text-red-600 border-red-200 ring-4 ring-red-100"
+                )}
                 title="Locate Me"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 group-hover:text-primary transition-colors"><line x1="12" x2="12" y1="2" y2="5" /><line x1="12" x2="12" y1="19" y2="22" /><line x1="2" x2="5" y1="12" y2="12" /><line x1="19" x2="22" y1="12" y2="12" /><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="3" className="fill-current opacity-0 group-hover:opacity-100 transition-opacity" /></svg>
+                {isLocating ? (
+                    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={cn(
+                            "w-5 h-5 transition-colors",
+                            hasError ? "text-red-600" : "group-hover:text-indigo-600"
+                        )}
+                    >
+                        <line x1="12" x2="12" y1="2" y2="5" />
+                        <line x1="12" x2="12" y1="19" y2="22" />
+                        <line x1="2" x2="5" y1="12" y2="12" />
+                        <line x1="19" x2="22" y1="12" y2="12" />
+                        <circle cx="12" cy="12" r="7" />
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="3"
+                            className={cn(
+                                "fill-current transition-opacity",
+                                hasError ? "opacity-0" : "opacity-0 group-hover:opacity-100"
+                            )}
+                        />
+                    </svg>
+                )}
             </button>
         </div>
     );
