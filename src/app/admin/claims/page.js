@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
     ShieldCheck,
     X,
@@ -14,11 +13,11 @@ import {
     Phone,
     User,
     Store,
-    ExternalLink,
     AlertCircle,
     Search,
-    LogOut,
-    ArrowLeft
+    Filter,
+    CheckCircle2,
+    Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -90,160 +89,188 @@ export default function AdminClaimsPage() {
         return matchesQuery && matchesFilter;
     });
 
-    return (
-        <div className="min-h-screen bg-slate-50 p-6 md:p-12">
-            <div className="max-w-6xl mx-auto">
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-indigo-600 rounded-xl text-white">
-                                <ShieldCheck size={28} />
-                            </div>
-                            <h1 className="text-3xl font-black text-slate-900 font-outfit">Claim Verifications</h1>
-                        </div>
-                        <p className="text-slate-500 font-medium ml-1">Review and approve business ownership requests</p>
+    const StatsCard = ({ title, value, subtext, icon: Icon, colorClass, gradientClass }) => (
+        <div className="relative overflow-hidden rounded-3xl p-6 bg-white shadow-sm border border-slate-100 group hover:shadow-lg transition-all duration-300">
+            <div className={cn("absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full blur-2xl opacity-20", gradientClass)} />
+            <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className={cn("p-2 rounded-lg", colorClass.bg)}>
+                        <Icon className={cn("w-5 h-5", colorClass.text)} />
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-3 bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
-                        {['pending', 'approved', 'rejected'].map((f) => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={cn(
-                                    "px-6 py-2 rounded-xl text-sm font-bold capitalize transition-all",
-                                    filter === f
-                                        ? "bg-slate-900 text-white shadow-md"
-                                        : "text-slate-400 hover:text-slate-600"
-                                )}
-                            >
-                                {f}
-                            </button>
-                        ))}
-                        <div className="w-[1px] h-6 bg-slate-100 hidden md:block mx-1" />
-                        <Link
-                            href="/"
-                            onClick={() => localStorage.setItem("waitly_mode", "user")}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
-                        >
-                            <ArrowLeft className="w-4 h-4" /> Exit to App
-                        </Link>
-                        <button
-                            onClick={async () => {
-                                await signOut();
-                                router.push('/');
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-500 hover:text-rose-600 transition-all"
-                        >
-                            <LogOut className="w-4 h-4" /> Sign Out
-                        </button>
-                    </div>
-                </header>
-
-                <div className="mb-8 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search by business or owner name..."
-                        className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span>
                 </div>
-
-                {isLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="bg-white rounded-3xl p-6 h-64 animate-pulse border border-slate-100 shadow-sm" />
-                        ))}
-                    </div>
-                ) : filteredClaims.length === 0 ? (
-                    <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-slate-300">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                            <Clock size={40} />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-600">No {filter} requests found</h3>
-                        <p className="text-slate-400">All clear for now!</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredClaims.map((claim) => (
-                            <div key={claim.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all overflow-hidden relative group">
-                                <div className={cn(
-                                    "h-2 w-full",
-                                    claim.status === 'pending' ? "bg-amber-400" :
-                                        claim.status === 'approved' ? "bg-emerald-500" : "bg-rose-500"
-                                )} />
-
-                                <div className="p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div>
-                                            <h3 className="font-black text-slate-900 text-lg leading-tight mb-1">{claim.places?.name}</h3>
-                                            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold">
-                                                <Store size={12} />
-                                                {claim.places?.address}
-                                            </div>
-                                        </div>
-                                        <div className={cn(
-                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                                            claim.status === 'pending' ? "bg-amber-50 text-amber-600" :
-                                                claim.status === 'approved' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                                        )}>
-                                            {claim.status}
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4 mb-8">
-                                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <User size={16} className="text-indigo-500" />
-                                                <span className="font-bold text-slate-700 text-sm">{claim.full_name}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <Mail size={16} className="text-indigo-500" />
-                                                <span className="text-slate-500 text-xs font-medium">{claim.business_email}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <Phone size={16} className="text-indigo-500" />
-                                                <span className="text-slate-500 text-xs font-medium">{claim.phone}</span>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                                <AlertCircle size={10} /> Verification Weight
-                                            </h4>
-                                            <p className="text-xs text-slate-600 leading-relaxed bg-indigo-50/30 p-3 rounded-xl border border-indigo-100/50 italic">
-                                                "{claim.verification_info}"
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {claim.status === 'pending' && (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button
-                                                onClick={() => handleAction(claim.id, claim.place_id, claim.user_id, 'approved')}
-                                                className="bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100"
-                                            >
-                                                <Check size={18} /> Approve
-                                            </button>
-                                            <button
-                                                onClick={() => handleAction(claim.id, claim.place_id, claim.user_id, 'rejected')}
-                                                className="bg-white border border-slate-200 text-rose-500 font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-rose-50 hover:border-rose-100 transition-all"
-                                            >
-                                                <X size={18} /> Reject
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    <span className="absolute bottom-4 right-4 text-[10px] font-bold text-slate-300">
-                                        {new Date(claim.created_at).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <div className="text-4xl font-black text-slate-900 tracking-tight">{value}</div>
+                <div className="text-sm font-medium text-slate-400 mt-1">{subtext}</div>
             </div>
+        </div>
+    );
+
+    return (
+        <div className="p-6 md:p-10 max-w-7xl mx-auto animate-in fade-in duration-500">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 mb-2">Claim Verifications</h1>
+                    <p className="text-slate-500 font-medium">Review and approve business ownership requests</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search claims..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 pr-4 py-3 w-full md:w-80 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <StatsCard
+                    title="Total Claims"
+                    value={claims.length}
+                    subtext="All time requests"
+                    icon={Building2}
+                    colorClass={{ bg: "bg-slate-100", text: "text-slate-600" }}
+                    gradientClass="bg-slate-900"
+                />
+                <StatsCard
+                    title="Pending Action"
+                    value={claims.filter(c => c.status === 'pending').length}
+                    subtext="Requires attention"
+                    icon={Clock}
+                    colorClass={{ bg: "bg-amber-100", text: "text-amber-600" }}
+                    gradientClass="bg-amber-500"
+                />
+                <StatsCard
+                    title="Verified Owners"
+                    value={claims.filter(c => c.status === 'approved').length}
+                    subtext="Successfully onboarded"
+                    icon={CheckCircle2}
+                    colorClass={{ bg: "bg-emerald-100", text: "text-emerald-600" }}
+                    gradientClass="bg-emerald-500"
+                />
+            </div>
+
+            {/* Filter Tabs - Segmented Control */}
+            <div className="mb-8">
+                <div className="inline-flex bg-slate-100/80 p-1.5 rounded-2xl">
+                    {['pending', 'approved', 'rejected'].map((f) => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={cn(
+                                "px-6 py-2.5 rounded-xl text-sm font-bold capitalize transition-all duration-200 flex items-center gap-2",
+                                filter === f
+                                    ? "bg-white text-slate-900 shadow-sm shadow-slate-200"
+                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                            )}
+                        >
+                            {f === 'pending' && <Clock className="w-4 h-4" />}
+                            {f === 'approved' && <Check className="w-4 h-4" />}
+                            {f === 'rejected' && <X className="w-4 h-4" />}
+                            {f}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="bg-white rounded-3xl p-6 h-64 animate-pulse border border-slate-100 shadow-sm" />
+                    ))}
+                </div>
+            ) : filteredClaims.length === 0 ? (
+                <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-slate-200">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                        <Clock size={40} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-600">No {filter} requests found</h3>
+                    <p className="text-slate-400">All clear for now!</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredClaims.map((claim) => (
+                        <div key={claim.id} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all overflow-hidden relative group">
+                            <div className={cn(
+                                "h-1.5 w-full",
+                                claim.status === 'pending' ? "bg-amber-400" :
+                                    claim.status === 'approved' ? "bg-emerald-500" : "bg-rose-500"
+                            )} />
+
+                            <div className="p-6">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div>
+                                        <h3 className="font-black text-slate-900 text-lg leading-tight mb-1">{claim.places?.name}</h3>
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold">
+                                            <Store size={12} />
+                                            {claim.places?.address}
+                                        </div>
+                                    </div>
+                                    <div className={cn(
+                                        "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border",
+                                        claim.status === 'pending' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                                            claim.status === 'approved' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                                    )}>
+                                        {claim.status}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 mb-8">
+                                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100/50">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <User size={16} className="text-indigo-500" />
+                                            <span className="font-bold text-slate-700 text-sm">{claim.full_name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <Mail size={16} className="text-indigo-500" />
+                                            <span className="text-slate-500 text-xs font-medium">{claim.business_email}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Phone size={16} className="text-indigo-500" />
+                                            <span className="text-slate-500 text-xs font-medium">{claim.phone}</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                            <AlertCircle size={10} /> Verification Weight
+                                        </h4>
+                                        <p className="text-xs text-slate-600 leading-relaxed bg-indigo-50/30 p-3 rounded-xl border border-indigo-100/50 italic">
+                                            "{claim.verification_info}"
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {claim.status === 'pending' && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={() => handleAction(claim.id, claim.place_id, claim.user_id, 'approved')}
+                                            className="bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                                        >
+                                            <Check size={18} /> Approve
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction(claim.id, claim.place_id, claim.user_id, 'rejected')}
+                                            className="bg-white border border-slate-200 text-rose-500 font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-rose-50 hover:border-rose-100 transition-all active:scale-95"
+                                        >
+                                            <X size={18} /> Reject
+                                        </button>
+                                    </div>
+                                )}
+
+                                <span className="absolute bottom-4 right-4 text-[10px] font-bold text-slate-300">
+                                    {new Date(claim.created_at).toLocaleDateString()}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

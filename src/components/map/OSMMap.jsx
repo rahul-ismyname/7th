@@ -83,12 +83,12 @@ function MapClickHandler({ onDoubleClick }) {
 function LocateUser() {
     const map = useMap();
     const [isLocating, setIsLocating] = useState(false);
-    const [hasError, setHasError] = useState(false);
+    const [errorMsg, setErrorMsg] = useState(null);
 
     useEffect(() => {
         const onLocationFound = (e) => {
             setIsLocating(false);
-            setHasError(false);
+            setErrorMsg(null);
             map.flyTo(e.latlng, 16);
             L.popup()
                 .setLatLng(e.latlng)
@@ -98,11 +98,17 @@ function LocateUser() {
 
         const onLocationError = (e) => {
             setIsLocating(false);
-            setHasError(true);
+            console.error(e);
 
+            let msg = "Could not find location";
+            if (e.code === 1) msg = "Location access denied. Please enable permissions.";
+            else if (e.code === 2) msg = "Location unavailable. Try again later.";
+            else if (e.code === 3) msg = "Location request timed out.";
 
-            // Reset error state after 3 seconds
-            setTimeout(() => setHasError(false), 3000);
+            setErrorMsg(msg);
+
+            // Reset error state after 4 seconds
+            setTimeout(() => setErrorMsg(null), 4000);
         };
 
         map.on('locationfound', onLocationFound);
@@ -116,12 +122,19 @@ function LocateUser() {
 
     const handleLocate = () => {
         setIsLocating(true);
-        setHasError(false);
+        setErrorMsg(null);
         map.locate({ setView: false, enableHighAccuracy: true });
     };
 
     return (
-        <div className="absolute bottom-24 md:bottom-6 right-6 z-[1000]">
+        <div className="absolute bottom-24 md:bottom-6 right-6 z-[1000] flex flex-col items-end gap-2">
+            {/* Error Toast */}
+            {errorMsg && (
+                <div className="bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg animate-in slide-in-from-right-10 fade-in duration-300 pointer-events-none whitespace-nowrap">
+                    {errorMsg}
+                </div>
+            )}
+
             <button
                 onClick={handleLocate}
                 disabled={isLocating}
@@ -132,7 +145,7 @@ function LocateUser() {
                     // Loading State
                     isLocating && "ring-4 ring-indigo-100 text-indigo-600 border-indigo-200 cursor-wait",
                     // Error State
-                    hasError && "bg-red-50 text-red-600 border-red-200 ring-4 ring-red-100"
+                    errorMsg && "bg-rose-50 text-rose-600 border-rose-200 ring-4 ring-rose-100"
                 )}
                 title="Locate Me"
             >
@@ -151,7 +164,7 @@ function LocateUser() {
                         strokeLinejoin="round"
                         className={cn(
                             "w-5 h-5 transition-colors",
-                            hasError ? "text-red-600" : "group-hover:text-indigo-600"
+                            errorMsg ? "text-rose-600" : "group-hover:text-indigo-600"
                         )}
                     >
                         <line x1="12" x2="12" y1="2" y2="5" />
@@ -165,7 +178,7 @@ function LocateUser() {
                             r="3"
                             className={cn(
                                 "fill-current transition-opacity",
-                                hasError ? "opacity-0" : "opacity-0 group-hover:opacity-100"
+                                errorMsg ? "opacity-0" : "opacity-0 group-hover:opacity-100"
                             )}
                         />
                     </svg>

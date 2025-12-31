@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { ShieldCheck, CheckCircle2, XCircle, MapPin, Search, ArrowLeft, Building2, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { ShieldCheck, CheckCircle2, MapPin, Search, Building2, Clock, Trash2, AlertTriangle, Filter } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function AdminPage() {
     const { user } = useAuth();
@@ -103,201 +104,182 @@ export default function AdminPage() {
     const pendingCount = filteredPlaces.filter(p => !p.is_approved).length;
     const approvedCount = filteredPlaces.filter(p => p.is_approved).length;
 
+    // Premium Card Component
+    const StatsCard = ({ title, value, subtext, icon: Icon, colorClass, gradientClass }) => (
+        <div className="relative overflow-hidden rounded-3xl p-6 bg-white shadow-sm border border-slate-100 group hover:shadow-lg transition-all duration-300">
+            <div className={cn("absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full blur-2xl opacity-20", gradientClass)} />
+            <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className={cn("p-2 rounded-lg", colorClass.bg)}>
+                        <Icon className={cn("w-5 h-5", colorClass.text)} />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{title}</span>
+                </div>
+                <div className="text-4xl font-black text-slate-900 tracking-tight">{value}</div>
+                <div className="text-sm font-medium text-slate-400 mt-1">{subtext}</div>
+            </div>
+        </div>
+    );
+
     return (
-        <div className="min-h-screen bg-white font-sans text-slate-900">
-            {/* Minimal Header */}
-            <header className="bg-white border-b border-slate-100 sticky top-0 z-30">
-                <div className="max-w-6xl mx-auto px-6 py-4">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-md shadow-slate-200">
-                                <ShieldCheck className="w-5 h-5 text-white" />
-                            </div>
-                            <h1 className="text-lg font-black tracking-tight text-slate-900">Admin Platform</h1>
-                        </div>
-                        <Link
-                            href="/"
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 rounded-full text-sm font-bold text-slate-600 transition-all border border-slate-100"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Exit
-                        </Link>
-                    </div>
+        <div className="p-6 md:p-10 max-w-7xl mx-auto animate-in fade-in duration-500">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 mb-2">Business Registry</h1>
+                    <p className="text-slate-500 font-medium">Manage and verify business partners</p>
                 </div>
-            </header>
-
-            <main className="max-w-6xl mx-auto p-6 md:p-10">
-                {/* Stats Cards - Fluid Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-2 text-slate-400 font-bold text-xs uppercase tracking-wider">
-                            <Building2 className="w-4 h-4" /> Total
-                        </div>
-                        <div className="text-4xl font-black text-slate-900">{filteredPlaces.length}</div>
-                        <div className="text-sm text-slate-500 font-medium mt-1">Businesses Registered</div>
-                    </div>
-                    <div className="p-6 rounded-3xl bg-amber-50/50 border border-amber-100">
-                        <div className="flex items-center gap-3 mb-2 text-amber-500 font-bold text-xs uppercase tracking-wider">
-                            <Clock className="w-4 h-4" /> Pending
-                        </div>
-                        <div className="text-4xl font-black text-amber-600">{pendingCount}</div>
-                        <div className="text-sm text-amber-600/80 font-medium mt-1">Awaiting Approval</div>
-                    </div>
-                    <div className="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100">
-                        <div className="flex items-center gap-3 mb-2 text-emerald-500 font-bold text-xs uppercase tracking-wider">
-                            <CheckCircle2 className="w-4 h-4" /> Live
-                        </div>
-                        <div className="text-4xl font-black text-emerald-600">{approvedCount}</div>
-                        <div className="text-sm text-emerald-600/80 font-medium mt-1">Active on Platform</div>
-                    </div>
-                </div>
-
-                {/* Search & Title */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-900">Registry</h2>
-                        {errorMsg && (
-                            <div className="mt-2 text-rose-600 text-sm font-bold">
-                                Error: {errorMsg}
-                            </div>
-                        )}
-                    </div>
-                    <div className="relative w-full md:w-80">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="flex items-center gap-3">
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         <input
                             type="text"
                             placeholder="Search businesses..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-slate-50 hover:bg-slate-100 border border-transparent rounded-xl text-sm font-bold transition-all focus:bg-white focus:border-indigo-500 focus:outline-none placeholder:text-slate-400"
+                            className="pl-10 pr-4 py-3 w-full md:w-80 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium"
                         />
                     </div>
                 </div>
+            </div>
 
-                {/* Tabs & Filters */}
-                {!searchQuery ? (
-                    <div className="flex gap-1 mb-6 p-1 bg-slate-100 rounded-xl w-fit">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <StatsCard
+                    title="Total Businesses"
+                    value={allPlaces.length}
+                    subtext="All registered locations"
+                    icon={Building2}
+                    colorClass={{ bg: "bg-slate-100", text: "text-slate-600" }}
+                    gradientClass="bg-slate-900"
+                />
+                <StatsCard
+                    title="Pending Review"
+                    value={allPlaces.filter(p => !p.is_approved).length}
+                    subtext="Awaiting verification"
+                    icon={Clock}
+                    colorClass={{ bg: "bg-amber-100", text: "text-amber-600" }}
+                    gradientClass="bg-amber-500"
+                />
+                <StatsCard
+                    title="Active Partners"
+                    value={allPlaces.filter(p => p.is_approved).length}
+                    subtext="Live on platform"
+                    icon={CheckCircle2}
+                    colorClass={{ bg: "bg-emerald-100", text: "text-emerald-600" }}
+                    gradientClass="bg-emerald-500"
+                />
+            </div>
+
+            {/* Filter Tabs - Apple Segmented Control Style */}
+            <div className="mb-8">
+                <div className="inline-flex bg-slate-100/80 p-1.5 rounded-2xl">
+                    {['pending', 'live', 'all'].map((tab) => (
                         <button
-                            onClick={() => setActiveTab('pending')}
-                            className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'pending'
-                                ? 'bg-white shadow-sm text-slate-900'
-                                : 'text-slate-500 hover:text-slate-700'
-                                }`}
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={cn(
+                                "px-6 py-2.5 rounded-xl text-sm font-bold capitalize transition-all duration-200 flex items-center gap-2",
+                                activeTab === tab
+                                    ? "bg-white text-slate-900 shadow-sm shadow-slate-200"
+                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                            )}
                         >
-                            Pending Review <span className="ml-1 opacity-60 text-xs bg-slate-200 px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+                            {tab === 'pending' && <Clock className="w-4 h-4" />}
+                            {tab === 'live' && <CheckCircle2 className="w-4 h-4" />}
+                            {tab === 'all' && <Filter className="w-4 h-4" />}
+                            {tab}
                         </button>
-                        <button
-                            onClick={() => setActiveTab('live')}
-                            className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'live'
-                                ? 'bg-white shadow-sm text-slate-900'
-                                : 'text-slate-500 hover:text-slate-700'
-                                }`}
-                        >
-                            Live Businesses <span className="ml-1 opacity-60 text-xs bg-slate-200 px-1.5 py-0.5 rounded-full">{approvedCount}</span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('all')}
-                            className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'all'
-                                ? 'bg-white shadow-sm text-slate-900'
-                                : 'text-slate-500 hover:text-slate-700'
-                                }`}
-                        >
-                            All
-                        </button>
-                    </div>
-                ) : (
-                    <div className="mb-6 flex items-center gap-2 text-sm font-bold text-slate-500 bg-slate-50 px-4 py-2 rounded-lg w-fit">
-                        <Search className="w-4 h-4" />
-                        Searching entire registry for "{searchQuery}"
+                    ))}
+                </div>
+            </div>
+
+            {/* Content List */}
+            <div className="space-y-4">
+                {errorMsg && (
+                    <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl font-bold flex items-center gap-2 border border-rose-100">
+                        <AlertTriangle className="w-5 h-5" />
+                        {errorMsg}
                     </div>
                 )}
 
-                {/* Business List */}
-                <div className="space-y-3">
-                    {loading ? (
-                        <div className="bg-white rounded-2xl p-12 text-center">
-                            <div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4" />
-                            <p className="text-slate-500 font-medium">Loading businesses...</p>
+                {loading ? (
+                    <div className="grid grid-cols-1 gap-4">
+                        {[1, 2, 3].map(n => (
+                            <div key={n} className="h-24 bg-white rounded-3xl border border-slate-100 animate-pulse" />
+                        ))}
+                    </div>
+                ) : filteredPlaces.length === 0 ? (
+                    <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Search className="w-8 h-8 text-slate-300" />
                         </div>
-                    ) : filteredPlaces.length === 0 ? (
-                        <div className="bg-white rounded-2xl p-12 text-center">
-                            <Building2 className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                            <p className="text-slate-500 font-medium">No businesses found</p>
-                        </div>
-                    ) : (
-                        filteredPlaces.map(place => (
-                            <div
-                                key={place.id}
-                                className={`bg-white rounded-2xl p-5 border-2 transition-all hover:shadow-md ${place.is_approved ? 'border-slate-100' : 'border-amber-200 bg-amber-50/30'
-                                    }`}
-                            >
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    {/* Business Info */}
-                                    <div className="flex items-start gap-4">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 ${place.is_approved
-                                            ? 'bg-gradient-to-br from-indigo-500 to-violet-500 text-white'
-                                            : 'bg-gradient-to-br from-amber-400 to-orange-400 text-white'
-                                            }`}>
-                                            {place.name[0]}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-bold text-slate-900 truncate">{place.name}</h3>
-                                                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-xs font-medium rounded-full">
-                                                    {place.type}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-slate-500">
-                                                <MapPin className="w-4 h-4 shrink-0" />
-                                                <span className="truncate">{place.address}</span>
-                                            </div>
-                                            <div className="mt-1 text-xs text-slate-400 font-mono">
-                                                ID: {place.id}
-                                            </div>
-                                        </div>
-                                    </div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">No businesses found</h3>
+                        <p className="text-slate-500">Try adjusting your search or filters</p>
+                    </div>
+                ) : (
+                    filteredPlaces.map(place => (
+                        <div
+                            key={place.id}
+                            className="group bg-white rounded-2xl p-4 border border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col md:flex-row items-center gap-6"
+                        >
+                            {/* Icon/Avatar */}
+                            <div className={cn(
+                                "w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl shrink-0 transition-transform group-hover:scale-105 shadow-sm",
+                                place.is_approved
+                                    ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-indigo-200"
+                                    : "bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-amber-200"
+                            )}>
+                                {place.name[0]}
+                            </div>
 
-                                    {/* Actions */}
-                                    <div className="flex items-center gap-2 md:shrink-0">
-                                        <div className="text-right text-xs text-slate-400 hidden md:block mr-2">
-                                            <div>{place.created_at ? new Date(place.created_at).toLocaleDateString() : 'Unknown'}</div>
-                                            <div>{place.created_at ? new Date(place.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
-                                        </div>
-
-                                        {place.is_approved ? (
-                                            <button
-                                                onClick={() => updateStatus(place.id, false)}
-                                                className="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg text-xs font-bold transition-all border border-amber-100"
-                                                title="Suspend Business"
-                                            >
-                                                <AlertTriangle className="w-3.5 h-3.5" />
-                                                Suspend
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => updateStatus(place.id, true)}
-                                                className="flex items-center gap-2 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-xs font-bold transition-all border border-emerald-100"
-                                                title="Approve Business"
-                                            >
-                                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                                Approve
-                                            </button>
-                                        )}
-
-                                        <button
-                                            onClick={() => handleDelete(place.id)}
-                                            className="p-2 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all border border-slate-100 hover:border-rose-100"
-                                            title="Delete Business"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                            {/* Info */}
+                            <div className="flex-1 text-center md:text-left min-w-0">
+                                <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
+                                    <h3 className="font-bold text-lg text-slate-900 truncate">{place.name}</h3>
+                                    {place.is_approved && <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-50" />}
+                                </div>
+                                <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-slate-500 font-medium">
+                                    <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                        <Building2 className="w-3.5 h-3.5" /> {place.type}
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <MapPin className="w-3.5 h-3.5" /> {place.address}
+                                    </span>
                                 </div>
                             </div>
-                        ))
-                    )}
-                </div>
-            </main>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-3 shrink-0">
+                                {place.is_approved ? (
+                                    <button
+                                        onClick={() => updateStatus(place.id, false)}
+                                        className="px-4 py-2 bg-slate-50 hover:bg-amber-50 text-slate-600 hover:text-amber-600 rounded-xl text-xs font-bold transition-all border border-slate-200 hover:border-amber-200 flex items-center gap-2"
+                                    >
+                                        <AlertTriangle className="w-3.5 h-3.5" />
+                                        Suspend
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => updateStatus(place.id, true)}
+                                        className="px-6 py-2 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg hover:shadow-emerald-200 flex items-center gap-2"
+                                    >
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        Approve
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => handleDelete(place.id)}
+                                    className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                    title="Delete"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 }
