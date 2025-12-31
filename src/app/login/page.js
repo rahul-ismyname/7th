@@ -8,7 +8,7 @@ import Link from "next/link";
 import { signupUser, requestPasswordReset } from "@/actions/auth";
 import Logo from "@/components/Logo";
 
-export default function LoginPage() {
+function LoginContent() {
     const [mode, setMode] = useState("signin");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -301,5 +301,17 @@ export default function LoginPage() {
                 <div className="absolute top-1/2 right-32 w-2 h-2 bg-white rounded-full animate-pulse delay-300" />
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <React.Suspense fallback={
+            <div className="h-[100dvh] w-full flex items-center justify-center bg-slate-50">
+                <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+            </div>
+        }>
+            <LoginContent />
+        </React.Suspense>
     );
 }
