@@ -87,7 +87,7 @@ function LocateUser() {
     };
 
     return (
-        <div className="absolute bottom-6 right-6 z-[1000]">
+        <div className="absolute bottom-24 md:bottom-6 right-6 z-[1000]">
             <button
                 onClick={handleLocate}
                 className="p-3 bg-white rounded-full shadow-xl hover:bg-slate-50 text-slate-700 transition-all border border-slate-200 active:scale-95 flex items-center justify-center group"
