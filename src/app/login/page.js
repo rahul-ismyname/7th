@@ -136,10 +136,13 @@ function LoginContent() {
                                         const isVendor = nextPath?.includes('/vendor') || role === 'vendor';
                                         const finalNext = nextPath || (isVendor ? '/vendor' : '/');
 
+                                        // Set cookie validation to ensure correct redirect
+                                        document.cookie = `waitly_next=${finalNext}; path=/; max-age=600`;
+
                                         const { error } = await supabase.auth.signInWithOAuth({
                                             provider: 'google',
                                             options: {
-                                                redirectTo: `${window.location.origin}/auth/callback?next=${finalNext}`,
+                                                redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(finalNext)}`,
                                             },
                                         });
                                         if (error) {
