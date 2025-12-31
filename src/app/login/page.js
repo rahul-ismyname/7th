@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Loader2, Compass, KeyRound, Store, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, Compass, KeyRound, Store, Sparkles, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { signupUser, requestPasswordReset } from "@/actions/auth";
 import Logo from "@/components/Logo";
@@ -12,6 +12,7 @@ function LoginContent() {
     const [mode, setMode] = useState("signin");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState(null);
     const router = useRouter();
@@ -187,15 +188,24 @@ function LoginContent() {
 
                             {mode !== "forgot" && (
                                 <div>
-                                    <input
-                                        type="password"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full px-4 py-3 bg-slate-50 text-slate-900 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all outline-none font-medium placeholder:text-slate-400"
-                                        placeholder="Password"
-                                        minLength={6}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            required
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            className="w-full px-4 py-3 bg-slate-50 text-slate-900 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all outline-none font-medium placeholder:text-slate-400 pr-12"
+                                            placeholder="Password"
+                                            minLength={6}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -254,7 +264,7 @@ function LoginContent() {
                 {/* Footer */}
                 <div className="px-6 py-4 text-center border-t border-slate-100">
                     <p className="text-xs text-slate-400">
-                        By continuing, you agree to our Terms of Service
+                        By continuing, you agree to our <Link href="/terms" className="underline hover:text-slate-500 transition-colors">Terms of Service</Link>
                     </p>
                 </div>
             </div>
