@@ -37,13 +37,12 @@ export async function GET(request) {
             const isLocalEnv = process.env.NODE_ENV === 'development'
 
             // Priority: Check for cookie (Force override if present)
-            const cookieStore = await cookies();
+            // Reuse existing cookieStore from line 10
             const nextCookie = cookieStore.get('waitly_next');
-            if (nextCookie) {
+            if (nextCookie?.value) {
                 next = nextCookie.value;
-                // Optional: Clear cookie (or let it expire). 
-                // We'll let it expire to be safe or could clear it here if needed, 
-                // but for now simple priority is enough.
+                // Delete the cookie so it doesn't persist for future generic logins
+                cookieStore.set('waitly_next', '', { maxAge: 0, path: '/' });
             }
 
             // Fallback: Check if user is a vendor

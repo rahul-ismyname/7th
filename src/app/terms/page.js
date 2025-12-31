@@ -1,9 +1,14 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
 import { ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function TermsPage() {
+    const router = useRouter();
+
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
             {/* Header */}
@@ -13,10 +18,13 @@ export default function TermsPage() {
                         <Logo className="w-8 h-8 text-indigo-600" />
                         <span className="font-black text-xl text-slate-900 tracking-tight">Waitly</span>
                     </Link>
-                    <Link href="/" className="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">
+                    <button
+                        onClick={() => router.back()}
+                        className="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+                    >
                         <ArrowLeft className="w-4 h-4" />
-                        Back to Home
-                    </Link>
+                        Back to Login
+                    </button>
                 </div>
             </header>
 
