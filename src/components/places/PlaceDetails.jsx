@@ -23,6 +23,7 @@ import { AddWaitTimeModal } from "./AddWaitTimeModal";
 import { JoinQueueModal } from "./JoinQueueModal";
 import { ReviewFlowModal } from "./ReviewFlowModal";
 import { CancelTicketModal } from "./CancelTicketModal";
+import ClaimFormModal from "@/components/map/ClaimFormModal";
 import { usePlaces } from "@/context/PlacesContext";
 import { useTickets } from "@/context/TicketsContext";
 

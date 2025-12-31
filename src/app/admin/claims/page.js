@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
     ShieldCheck,
     X,
@@ -13,11 +16,15 @@ import {
     Store,
     ExternalLink,
     AlertCircle,
-    Search
+    Search,
+    LogOut,
+    ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminClaimsPage() {
+    const { signOut } = useAuth();
+    const router = useRouter();
     const [claims, setClaims] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -97,7 +104,7 @@ export default function AdminClaimsPage() {
                         <p className="text-slate-500 font-medium ml-1">Review and approve business ownership requests</p>
                     </div>
 
-                    <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
+                    <div className="flex flex-wrap items-center gap-3 bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
                         {['pending', 'approved', 'rejected'].map((f) => (
                             <button
                                 key={f}
@@ -112,6 +119,23 @@ export default function AdminClaimsPage() {
                                 {f}
                             </button>
                         ))}
+                        <div className="w-[1px] h-6 bg-slate-100 hidden md:block mx-1" />
+                        <Link
+                            href="/"
+                            onClick={() => localStorage.setItem("waitly_mode", "user")}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Exit to App
+                        </Link>
+                        <button
+                            onClick={async () => {
+                                await signOut();
+                                router.push('/');
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-500 hover:text-rose-600 transition-all"
+                        >
+                            <LogOut className="w-4 h-4" /> Sign Out
+                        </button>
                     </div>
                 </header>
 

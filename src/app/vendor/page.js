@@ -414,14 +414,23 @@ export default function VendorPage() {
                             ))}
                         </div>
 
-                        <div className="p-4 border-t border-slate-100 bg-slate-50">
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 space-y-3">
                             <Link
                                 href="/"
                                 onClick={() => localStorage.setItem("waitly_mode", "user")}
-                                className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
+                                className="flex items-center gap-3 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors px-2"
                             >
                                 <ArrowLeft className="w-4 h-4" /> Exit to App
                             </Link>
+                            <button
+                                onClick={async () => {
+                                    await signOut();
+                                    router.push('/');
+                                }}
+                                className="w-full flex items-center gap-3 px-2 py-1 text-slate-500 hover:text-rose-600 transition-all font-bold text-sm"
+                            >
+                                <LogOut className="w-4 h-4" /> Sign Out
+                            </button>
                         </div>
                     </div>
                 </div>
