@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { usePlaces } from "@/context/PlacesContext";
+import { useAuth } from "@/context/AuthContext";
 import { ShieldCheck, CheckCircle2, XCircle, MapPin, Search, ArrowLeft, Building2, Clock, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
-    const { user } = usePlaces();
+    const { user } = useAuth();
     const [allPlaces, setAllPlaces] = useState([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState(null);

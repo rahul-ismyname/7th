@@ -1,12 +1,16 @@
 "use client";
 
 import { usePlaces } from "@/context/PlacesContext";
+import { useAuth } from "@/context/AuthContext";
+import { useTickets } from "@/context/TicketsContext";
 import { ArrowLeft, Calendar, Clock, MapPin, CheckCircle2, XCircle, History as HistoryIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 
 export default function HistoryPage() {
-    const { user, historyTickets, places, refreshHistory, clearHistory } = usePlaces();
+    const { user } = useAuth();
+    const { historyTickets, refreshHistory, clearHistory } = useTickets();
+    const { places } = usePlaces();
 
     // Protect Route
     useEffect(() => {

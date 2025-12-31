@@ -24,9 +24,10 @@ import { JoinQueueModal } from "./JoinQueueModal";
 import { ReviewFlowModal } from "./ReviewFlowModal";
 import { CancelTicketModal } from "./CancelTicketModal";
 import { usePlaces } from "@/context/PlacesContext";
+import { useTickets } from "@/context/TicketsContext";
 
 export function PlaceDetails({ place, onBack }) {
-    const { activeTickets, joinQueue, leaveQueue, submitReview, completeTicket } = usePlaces();
+    const { joinQueue, leaveQueue, submitReview, completeTicket, activeTickets } = useTickets();
     const [showWaitTimeModal, setShowWaitTimeModal] = useState(false);
     const [showJoinModal, setShowJoinModal] = useState(false);
     const [reviewTicket, setReviewTicket] = useState(null);
@@ -114,7 +115,7 @@ export function PlaceDetails({ place, onBack }) {
     const handleReviewComplete = async () => {
         if (!myTicket) return;
         try {
-            await usePlaces().completeTicket(myTicket.ticketId);
+            await completeTicket(myTicket.ticketId);
         } catch (e) {
             console.error("Failed to complete ticket", e);
         }

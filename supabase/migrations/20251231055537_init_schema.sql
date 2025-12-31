@@ -4,6 +4,9 @@
 -- your database to the latest state.
 -- ====================================================
 
+-- 0. ENABLE EXTENSIONS
+create extension if not exists postgis;
+
 -- 1. CLEANUP (Optional - Uncomment to wipe data)
 -- drop table if exists tickets;
 -- drop table if exists places;
@@ -26,7 +29,7 @@ create table if not exists places (
   queue_length int default 0,
   current_serving_token text,
   estimated_turn_time text,
-  estimated_turn_time text,
+  average_service_time int default 5,
   last_updated timestamptz default now(),
   created_at timestamptz default now(), -- Added for sorting
   owner_id uuid references auth.users(id), -- Added for Vendor features
@@ -69,6 +72,7 @@ alter table tickets add column if not exists actual_wait_time int;
 -- Idempotent updates for places
 alter table places add column if not exists opening_time text;
 alter table places add column if not exists closing_time text;
+alter table places add column if not exists average_service_time int default 5;
 
 -- 3. ENABLE REALTIME (Idempotent)
 do $$
@@ -94,6 +98,8 @@ drop policy if exists "Public Places Access" on places;
 drop policy if exists "Authenticated Insert" on places;
 drop policy if exists "Owners can update their places" on places;
 drop policy if exists "Owners can delete their places" on places;
+drop policy if exists "Admins can delete places" on places;
+drop policy if exists "Admins can update places" on places;
 
 -- Policy 1: Everyone can read places (Required for Admin Realtime & Public Map)
 create policy "Public Places Access" on places
@@ -216,3 +222,53 @@ values
   ('KFC', 'Restaurant', 'Outer Circle, CP', 4.0, true, 28.6304, 77.2200, 15, 'Medium', 5, 'K-55', '10:20 AM'),
   ('RTO Office', 'Government', 'Janpath', 3.1, false, 28.6280, 77.2180, 120, 'High', 0, null, null)
 on conflict do nothing; -- Prevent duplicates if run multiple times
+
+-- 9. GEOSPATIAL FUNCTIONS
+drop function if exists get_nearby_places;
+
+create or replace function get_nearby_places(
+  cur_lat double precision,
+  cur_lng double precision,
+  radius_km double precision default 5.0
+) returns table (
+  id uuid,
+  name text,
+  type text,
+  address text,
+  rating float,
+  is_approved boolean,
+  lat double precision,
+  lng double precision,
+  live_wait_time int,
+  crowd_level text,
+  queue_length int,
+  current_serving_token text,
+  estimated_turn_time text,
+  last_updated timestamptz,
+  average_service_time int,
+  dist_meters double precision
+) language plpgsql security definer as $$
+begin
+  return query
+  select
+    p.id, p.name, p.type, p.address, p.rating, p.is_approved, p.lat, p.lng,
+    p.live_wait_time, p.crowd_level, p.queue_length,
+    p.current_serving_token, p.estimated_turn_time, p.last_updated,
+    p.average_service_time,
+    st_distance(
+      st_point(cur_lng, cur_lat)::geography,
+      st_point(p.lng, p.lat)::geography
+    ) as dist_meters
+  from places p
+  where p.is_approved = true
+  and st_dwithin(
+    st_point(cur_lng, cur_lat)::geography,
+    st_point(p.lng, p.lat)::geography,
+    radius_km * 1000
+  )
+  order by dist_meters;
+end;
+$$;
+
+-- Spatial Index for performance
+create index if not exists places_geo_idx on places using gist ((st_point(lng, lat)::geography));

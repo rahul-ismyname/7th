@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePlaces } from "@/context/PlacesContext";
+import { useTickets } from "@/context/TicketsContext";
 import { Clock, MapPin, Ticket as TicketIcon, ArrowRight, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Logo from "@/components/Logo";
 
 // Helper to send browser notification
 const sendNotification = (title, body) => {
@@ -13,7 +15,8 @@ const sendNotification = (title, body) => {
 };
 
 export function UserTickets({ onSelectPlace }) {
-    const { activeTickets, historyTickets, places, leaveQueue } = usePlaces();
+    const { activeTickets, historyTickets, leaveQueue } = useTickets();
+    const { places } = usePlaces();
     const [view, setView] = useState('active');
     const [countdown, setCountdown] = useState(null);
     const notifiedRef = useRef({ fiveMin: new Set(), turn: new Set() });
@@ -73,7 +76,7 @@ export function UserTickets({ onSelectPlace }) {
         return (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-transparent animate-in fade-in zoom-in duration-500">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6 border border-slate-200 shadow-inner">
-                    <TicketIcon className="w-10 h-10 text-slate-300" />
+                    <Logo className="w-10 h-10 text-slate-400" />
                 </div>
                 <h3 className="font-bold text-slate-900 text-lg mb-2">No tickets yet</h3>
                 <p className="text-sm text-slate-500 max-w-[200px]">Join a virtual queue to start saving time!</p>

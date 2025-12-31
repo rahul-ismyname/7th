@@ -3,6 +3,9 @@
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useMemo } from "react";
 import { usePlaces } from "@/context/PlacesContext";
+import { useAuth } from "@/context/AuthContext";
+import { useVendor } from "@/context/VendorContext";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
     LayoutDashboard,
@@ -30,7 +33,9 @@ const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), 
 });
 
 export default function VendorPage() {
-    const { user, vendorPlaces, addPlace, removePlace, updateTicketStatus, callNextTicket, addCounter, deleteCounter } = usePlaces();
+    const { user, signOut } = useAuth();
+    const { vendorPlaces, addPlace, removePlace, updateTicketStatus, callNextTicket, addCounter, deleteCounter } = useVendor();
+    const router = useRouter();
 
     const [selectedPlaceId, setSelectedPlaceId] = useState(null);
     const [selectedCounterId, setSelectedCounterId] = useState(null); // New: Select specific counter
@@ -515,8 +520,7 @@ export default function VendorPage() {
                     </button>
                     <button
                         onClick={async () => {
-                            await supabase.auth.signOut();
-                            localStorage.removeItem("waitly_mode");
+                            await signOut();
                             router.push('/');
                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all font-bold text-sm"

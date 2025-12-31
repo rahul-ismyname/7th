@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePlaces } from "@/context/PlacesContext";
+import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { User, Lock, LogOut, ArrowLeft, CheckCircle2, AlertCircle, Camera, Bell,
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
-    const { user, signOut } = usePlaces();
+    const { user, signOut } = useAuth();
     const router = useRouter();
 
     const [loading, setLoading] = useState(false);
@@ -237,10 +237,9 @@ export default function ProfilePage() {
                                 onClick={async () => {
                                     try {
                                         await signOut();
+                                        router.push('/');
                                     } catch (e) {
                                         console.error("Sign out error:", e);
-                                    } finally {
-                                        window.location.href = "/";
                                     }
                                 }}
                                 className="w-full py-4 text-rose-500 font-bold hover:bg-rose-50 rounded-2xl transition-colors flex items-center justify-center gap-2 group"

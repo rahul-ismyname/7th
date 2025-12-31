@@ -2,8 +2,11 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { usePlaces } from "@/context/PlacesContext";
+import { useAuth } from "@/context/AuthContext";
+import { useTickets } from "@/context/TicketsContext";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import Logo from "@/components/Logo";
 
 import dynamic from "next/dynamic";
 
@@ -16,14 +19,16 @@ const OSMMap = dynamic(() => import("@/components/map/OSMMap"), {
         </div>
     </div>,
 });
-import { PlaceList } from "@/components/places/PlaceList";
+import { PlaceList, PlaceListSkeleton } from "@/components/places/PlaceList";
 import { PlaceDetails } from "@/components/places/PlaceDetails";
 import { cn } from "@/lib/utils";
 import { UserTickets } from "@/components/user/UserTickets";
 import { Search, Ticket, Store, MapPin, Clock, Users, Sparkles, ChevronRight, Bell } from "lucide-react";
 
 function HomeContent() {
-    const { places, activeTickets, user } = usePlaces();
+    const { places, nearbyPlaces, fetchNearbyPlaces } = usePlaces();
+    const { user } = useAuth();
+    const { activeTickets } = useTickets();
     const router = useRouter();
     const [selectedPlaceId, setSelectedPlaceId] = useState(undefined);
     const [searchQuery, setSearchQuery] = useState("");
@@ -73,25 +78,15 @@ function HomeContent() {
         }
     }, []);
 
-    // Distance Calculator (Haversine Formula) in km
-    function getDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Radius of the earth in km
-        const dLat = deg2rad(lat2 - lat1);
-        const dLon = deg2rad(lon2 - lon1);
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c; // Distance in km
-    }
+    // 2. Fetch Nearby from DB when Search Center changes
+    useEffect(() => {
+        if (searchCenter) {
+            fetchNearbyPlaces(searchCenter.lat, searchCenter.lng, 5.0); // 5km radius
+        }
+    }, [searchCenter, fetchNearbyPlaces]);
 
-    function deg2rad(deg) {
-        return deg * (Math.PI / 180);
-    }
-
-    const filteredPlaces = places.filter(place => {
-        // 1. Search Mode: Show everything that matches query
+    const filteredPlaces = (searchQuery ? places : nearbyPlaces).filter(place => {
+        // 1. Search Mode: Show everything that matches query (from global state)
         if (searchQuery) {
             return (
                 place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -100,13 +95,8 @@ function HomeContent() {
             );
         }
 
-        // 2. Nearby Mode (No Search): Filter by Distance from SEARCH CENTER (Max 4km)
-        if (searchCenter) {
-            const dist = getDistance(searchCenter.lat, searchCenter.lng, place.coordinates.lat, place.coordinates.lng);
-            return dist <= 4.0; // 4 km radius from where the user is LOOKING
-        }
-
-        return true; // Fallback if no location yet
+        // 2. Nearby Mode (No Search): Already filtered by DB in nearbyPlaces
+        return true;
     }).slice(0, 20); // Always cap at 20 for performance
 
     const selectedPlace = places.find(p => p.id === selectedPlaceId);
@@ -126,9 +116,7 @@ function HomeContent() {
                     <div className="flex items-center justify-between mb-4">
                         {/* Brand */}
                         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setViewMode("places"); setSelectedPlaceId(undefined); }}>
-                            <div className="w-11 h-11 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-200 group-hover:scale-105 transition-transform">
-                                W
-                            </div>
+                            <Logo className="w-11 h-11 text-indigo-600 group-hover:scale-105 transition-transform duration-150" />
                             <div className="flex flex-col">
                                 <span className="font-black text-2xl tracking-tight text-slate-900 leading-none">Waitly</span>
                                 <span className="text-xs font-medium text-slate-400 leading-none mt-0.5">Skip the line, save your time</span>
@@ -218,21 +206,7 @@ function HomeContent() {
 
                             {/* List Content */}
                             <div className="flex-1 overflow-y-auto pb-32">
-                                {!user && places.length > 0 && !searchQuery && (
-                                    <div className="mx-5 mb-4 p-4 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-2xl text-white relative overflow-hidden shrink-0">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                                        <div className="relative">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Sparkles className="w-5 h-5" />
-                                                <span className="font-bold">New here?</span>
-                                            </div>
-                                            <p className="text-sm text-white/90 mb-3">Join queues remotely!</p>
-                                            <Link href="/login" className="inline-flex items-center gap-2 bg-white text-indigo-600 font-bold text-sm px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors">
-                                                Sign Up
-                                            </Link>
-                                        </div>
-                                    </div>
-                                )}
+
 
                                 <div className="px-5 pb-2 flex items-center justify-between shrink-0">
                                     <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
@@ -247,10 +221,15 @@ function HomeContent() {
                                         onSelect={setSelectedPlaceId}
                                         selectedId={selectedPlaceId}
                                     />
+                                ) : nearbyPlaces.length === 0 && !searchQuery ? (
+                                    <PlaceListSkeleton count={6} />
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center p-8 text-center opacity-50">
-                                        <Store className="w-12 h-12 mb-2 text-slate-300" />
-                                        <p>No places found</p>
+                                    <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-300">
+                                        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+                                            <Store className="w-8 h-8 text-slate-300" />
+                                        </div>
+                                        <p className="font-semibold text-slate-600 mb-1">No places found</p>
+                                        <p className="text-sm text-slate-400">Try a different search or location</p>
                                     </div>
                                 )}
                             </div>
@@ -321,11 +300,16 @@ export default function Home() {
     return (
         <Suspense fallback={
             <div className="flex h-screen items-center justify-center bg-slate-50">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl animate-pulse">
-                        W
+                <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+                    <div className="w-16 h-16 text-indigo-600 animate-pulse">
+                        <Logo className="w-full h-full" />
                     </div>
                     <div className="text-slate-500 font-medium">Loading Waitly...</div>
+                    <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
                 </div>
             </div>
         }>

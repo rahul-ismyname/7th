@@ -2,7 +2,10 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { AuthProvider } from "@/context/AuthContext";
 import { PlacesProvider } from "@/context/PlacesContext";
+import { TicketsProvider } from "@/context/TicketsContext";
+import { VendorProvider } from "@/context/VendorContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,11 +27,17 @@ export default function RootLayout({
     children,
 }) {
     return (
-        <html lang="en">
-            <body className={cn(inter.className, "min-h-screen bg-background antialiased touch-manipulation font-sans")}>
-                <PlacesProvider>
-                    {children}
-                </PlacesProvider>
+        <html lang="en" className="h-full">
+            <body className={cn(inter.className, "h-full bg-background antialiased touch-manipulation font-sans")}>
+                <AuthProvider>
+                    <PlacesProvider>
+                        <VendorProvider>
+                            <TicketsProvider>
+                                {children}
+                            </TicketsProvider>
+                        </VendorProvider>
+                    </PlacesProvider>
+                </AuthProvider>
             </body>
         </html>
     );
