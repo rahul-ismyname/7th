@@ -26,6 +26,7 @@ export const mapPlaceData = (p) => {
         estimatedTurnTime: p.estimated_turn_time,
         averageServiceTime: p.average_service_time || 5,
         counters: p.counters || [],
+        ownerId: p.owner_id,
     };
 };
 

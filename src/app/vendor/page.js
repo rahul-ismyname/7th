@@ -381,7 +381,18 @@ export default function VendorPage() {
                             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Your Businesses</div>
 
                             {myPlaces.length === 0 && (
-                                <p className="text-sm text-slate-400 italic px-2">No businesses yet.</p>
+                                <div className="px-2 py-4">
+                                    <p className="text-sm text-slate-400 italic mb-4">No businesses yet.</p>
+                                    <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Sparkles className="w-4 h-4 text-indigo-600" />
+                                            <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Pro Tip</span>
+                                        </div>
+                                        <p className="text-[11px] text-indigo-600/80 leading-relaxed">
+                                            If your business is already on our map, find it in the App and click <strong>"Claim this Business"</strong> to take control of it instantly!
+                                        </p>
+                                    </div>
+                                </div>
                             )}
 
                             {myPlaces.map(place => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -45,16 +45,22 @@ const createCustomIcon = (type, isSelected) => {
         popupAnchor: [0, -size]
     });
 };
-
-// Component to handle map center updates
 function MapUpdater({ selectedPlace }) {
     const map = useMap();
+    const lastFlownId = useRef(null);
 
     useEffect(() => {
-        if (selectedPlace) {
+        // Only fly if a new place is selected
+        if (selectedPlace && selectedPlace.id !== lastFlownId.current) {
             map.flyTo([selectedPlace.coordinates.lat, selectedPlace.coordinates.lng], 16, {
                 duration: 1.5
             });
+            lastFlownId.current = selectedPlace.id;
+        }
+
+        // Reset if selection is cleared
+        if (!selectedPlace) {
+            lastFlownId.current = null;
         }
     }, [selectedPlace, map]);
 
@@ -169,6 +175,10 @@ function LocateUser() {
     );
 }
 
+import MarkerClusterGroup from "react-leaflet-cluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+
 // Component to handle efficient marker rendering
 function PlacesLayer({
     places,
@@ -178,36 +188,29 @@ function PlacesLayer({
     const map = useMap();
     const [visiblePlaces, setVisiblePlaces] = useState([]);
 
-    // Function to update visible places based on bounds and zoom
+    // Function to update visible places based on bounds
     const updateVisibility = () => {
-        // Fallback: If we have few places, just show them all to avoid visibility bugs
-        if (places.length <= 20) {
-            setVisiblePlaces(places);
-            return;
-        }
-
-        const zoom = map.getZoom();
         const bounds = map.getBounds();
 
-        // Optimization 1: Hide all if zoomed out too far (World/City view)
-        if (zoom < 13) {
-            setVisiblePlaces([]);
-            return;
-        }
+        // Only show places within current view + small buffer
+        const buffer = 0.5; // Padding for smoother panning
+        const inView = places.filter(p => {
+            const lat = p.coordinates.lat;
+            const lng = p.coordinates.lng;
+            return lat > bounds.getSouth() - buffer &&
+                lat < bounds.getNorth() + buffer &&
+                lng > bounds.getWest() - buffer &&
+                lng < bounds.getEast() + buffer;
+        });
 
-        // Optimization 2: Only show places within current view
-        const inView = places.filter(p =>
-            bounds.contains([p.coordinates.lat, p.coordinates.lng])
-        );
-
-        // Optimization 3: Limit to max 20 to prevent rendering lag
-        setVisiblePlaces(inView.slice(0, 20));
+        // Optimization: Even with clustering, don't render more than 400 markers physically
+        // This keeps the DOM light while the clusterer handles the visual grouping
+        setVisiblePlaces(inView.slice(0, 400));
     };
 
     // Listen for map movements
     useMapEvents({
         moveend: () => {
-            // Notify parent of new center when user stops moving map
             if (onMapMoveEnd) {
                 const center = map.getCenter();
                 onMapMoveEnd(center.lat, center.lng);
@@ -217,13 +220,19 @@ function PlacesLayer({
         zoomend: updateVisibility,
     });
 
-    // Initial load
+    // Initial load and when data changes
     useEffect(() => {
         updateVisibility();
-    }, [places]); // Re-run if places data changes (e.g. search)
+    }, [places]);
 
     return (
-        <>
+        <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={60}
+            spiderfyOnMaxZoom={true}
+            showCoverageOnHover={false}
+            disableClusteringAtZoom={17}
+        >
             {visiblePlaces.map((place) => (
                 <Marker
                     key={place.id}
@@ -231,7 +240,6 @@ function PlacesLayer({
                     icon={createCustomIcon(place.type, false)}
                     eventHandlers={{
                         click: () => onSelectPlace(place.id),
-                        popupclose: () => onSelectPlace("")
                     }}
                 >
                     <Popup>
@@ -244,14 +252,14 @@ function PlacesLayer({
                                 </span>
                             ) : (
                                 <span className="text-xs text-amber-600 font-semibold mt-1">
-                                    {place.liveWaitTime}m Wait
+                                    Approx Wait: {place.liveWaitTime}m
                                 </span>
                             )}
                         </div>
                     </Popup>
                 </Marker>
             ))}
-        </>
+        </MarkerClusterGroup>
     );
 }
 

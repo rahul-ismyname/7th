@@ -33,6 +33,7 @@ export function PlaceDetails({ place, onBack }) {
     const [reviewTicket, setReviewTicket] = useState(null);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
+    const [showClaimModal, setShowClaimModal] = useState(false);
 
     // Check if user has a ticket for this place
     const myTicket = activeTickets.find(t => t.placeId === place.id && t.status === 'waiting');
@@ -342,6 +343,17 @@ export function PlaceDetails({ place, onBack }) {
                             <Info className="w-5 h-5" />
                             Report Wait Time
                         </button>
+
+                        {!place.ownerId && (
+                            <button
+                                onClick={() => setShowClaimModal(true)}
+                                className="w-full bg-white border-2 border-indigo-600 text-indigo-600 font-bold py-4 rounded-xl hover:bg-indigo-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            >
+                                <Briefcase className="w-5 h-5" />
+                                Claim this Business
+                            </button>
+                        )}
+
                         <AddWaitTimeModal
                             isOpen={showWaitTimeModal}
                             onClose={() => setShowWaitTimeModal(false)}
@@ -517,6 +529,12 @@ export function PlaceDetails({ place, onBack }) {
                 }}
                 placeName={place.name}
                 ticketNumber={myTicket?.tokenNumber}
+            />
+
+            <ClaimFormModal
+                place={place}
+                isOpen={showClaimModal}
+                onClose={() => setShowClaimModal(false)}
             />
         </div >
     );

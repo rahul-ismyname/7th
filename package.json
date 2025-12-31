@@ -14,12 +14,14 @@
     "@supabase/supabase-js": "^2.89.0",
     "clsx": "^2.1.1",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "nodemailer": "^7.0.12",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-leaflet": "^5.0.0",
+    "react-leaflet-cluster": "^4.0.0",
     "react-qr-code": "^2.0.18",
     "resend": "^6.6.0",
     "tailwind-merge": "^3.4.0"
@@ -28,6 +30,7 @@
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "supabase": "^2.70.5",
     "tailwindcss": "^4"
   }
 }

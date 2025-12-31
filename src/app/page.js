@@ -84,7 +84,7 @@ function HomeContent() {
         if (searchCenter) {
             // Debounce or at least only fetch if query has some length or is empty
             const timeout = setTimeout(() => {
-                fetchNearbyPlaces(searchCenter.lat, searchCenter.lng, 5.0, searchQuery || null);
+                fetchNearbyPlaces(searchCenter.lat, searchCenter.lng, 20.0, searchQuery || null);
             }, 300);
             return () => clearTimeout(timeout);
         }

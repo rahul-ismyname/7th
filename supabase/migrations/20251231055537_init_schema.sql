@@ -36,7 +36,8 @@ create table if not exists places (
   
   -- Working Hours
   opening_time text, -- Format: "HH:mm" (24h)
-  closing_time text  -- Format: "HH:mm" (24h)
+  closing_time text, -- Format: "HH:mm" (24h)
+  unique(name, lat, lng)
 );
 
 -- Tickets Table
@@ -60,6 +61,19 @@ create table if not exists tickets (
   -- Review Data
   counter_used text,
   actual_wait_time int
+);
+
+-- Claim Requests Table
+create table if not exists claim_requests (
+  id uuid default gen_random_uuid() primary key,
+  place_id uuid references places(id) not null,
+  user_id uuid references auth.users(id) not null,
+  full_name text not null,
+  business_email text not null,
+  phone text not null,
+  verification_info text not null,
+  status text default 'pending',
+  created_at timestamptz default now()
 );
 
 -- Idempotent updates for existing tables
@@ -89,6 +103,7 @@ $$;
 -- 4. ENABLE ROW LEVEL SECURITY (RLS)
 alter table places enable row level security;
 alter table tickets enable row level security;
+alter table claim_requests enable row level security;
 
 -- 5. POLICIES (Supabase Security)
 
@@ -159,6 +174,20 @@ drop policy if exists "Anon View Tickets" on tickets;
 drop policy if exists "Anon Create Tickets" on tickets;
 create policy "Anon View Tickets" on tickets for select using (user_id is null);
 create policy "Anon Create Tickets" on tickets for insert with check (user_id is null);
+
+
+-- C. CLAIM REQUESTS POLICIES
+drop policy if exists "Users can create claims" on claim_requests;
+create policy "Users can create claims" on claim_requests for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users can view own claims" on claim_requests;
+create policy "Users can view own claims" on claim_requests for select using (auth.uid() = user_id);
+
+drop policy if exists "Admins can view all claims" on claim_requests;
+create policy "Admins can view all claims" on claim_requests for select using (true);
+
+drop policy if exists "Admins can update claims" on claim_requests;
+create policy "Admins can update claims" on claim_requests for update using (true);
 
 
 -- 7. STORAGE POLICIES (Avatars)
@@ -247,6 +276,7 @@ create or replace function get_nearby_places(
   estimated_turn_time text,
   last_updated timestamptz,
   average_service_time int,
+  owner_id uuid,
   dist_meters double precision,
   relevance_score int
 ) language plpgsql security definer as $$
@@ -256,7 +286,7 @@ begin
     p.id, p.name, p.type, p.address, p.rating, p.is_approved, p.lat, p.lng,
     p.live_wait_time, p.crowd_level, p.queue_length,
     p.current_serving_token, p.estimated_turn_time, p.last_updated,
-    p.average_service_time,
+    p.average_service_time, p.owner_id,
     st_distance(
       st_point(cur_lng, cur_lat)::geography,
       st_point(p.lng, p.lat)::geography
@@ -277,7 +307,7 @@ begin
       lower(p.name) like lower('%' || search_term || '%') or 
       lower(p.type) like lower('%' || search_term || '%') or 
       lower(p.address) like lower('%' || search_term || '%')
-    ) and st_dwithin(st_point(cur_lng, cur_lat)::geography, st_point(p.lng, p.lat)::geography, 50000)) -- 50km max for search
+    ) and st_dwithin(st_point(cur_lng, cur_lat)::geography, st_point(p.lng, p.lat)::geography, 2000000)) -- 2000km max for search
     or
     -- Default nearby search
     (search_term is null and st_dwithin(st_point(cur_lng, cur_lat)::geography, st_point(p.lng, p.lat)::geography, radius_km * 1000))
