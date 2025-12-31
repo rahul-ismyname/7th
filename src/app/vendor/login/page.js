@@ -199,7 +199,7 @@ export default function VendorLoginPage() {
                                         const { error } = await supabase.auth.signInWithOAuth({
                                             provider: 'google',
                                             options: {
-                                                redirectTo: `${window.location.origin}/auth/callback?next=/vendor`,
+                                                redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/vendor')}`,
                                             },
                                         });
                                         if (error) {

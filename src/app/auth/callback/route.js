@@ -30,11 +30,19 @@ export async function GET(request) {
                 },
             }
         )
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
-            const next = searchParams.get('next')
+            let next = searchParams.get('next')
             const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
             const isLocalEnv = process.env.NODE_ENV === 'development'
+
+            // Fallback: Check if user is a vendor if no explicit redirect is present
+            if (!next) {
+                const role = data?.session?.user?.user_metadata?.role;
+                if (role === 'vendor') {
+                    next = '/vendor';
+                }
+            }
 
             if (next) {
                 // If in production with forwarded host (Vercel), ensure we use that domain
