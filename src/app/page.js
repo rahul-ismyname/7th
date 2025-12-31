@@ -21,7 +21,7 @@ const OSMMap = dynamic(() => import("@/components/map/OSMMap"), {
 });
 import { PlaceList, PlaceListSkeleton } from "@/components/places/PlaceList";
 import { PlaceDetails } from "@/components/places/PlaceDetails";
-import { cn } from "@/lib/utils";
+import { cn, calculateDistance } from "@/lib/utils";
 import { UserTickets } from "@/components/user/UserTickets";
 import { Search, Ticket, Store, MapPin, Clock, Users, Sparkles, ChevronRight, Bell } from "lucide-react";
 
@@ -78,26 +78,18 @@ function HomeContent() {
         }
     }, []);
 
-    // 2. Fetch Nearby from DB when Search Center changes
+    // 2. Fetch Nearby from DB when Search Center or Search Query changes
     useEffect(() => {
         if (searchCenter) {
-            fetchNearbyPlaces(searchCenter.lat, searchCenter.lng, 5.0); // 5km radius
+            // Debounce or at least only fetch if query has some length or is empty
+            const timeout = setTimeout(() => {
+                fetchNearbyPlaces(searchCenter.lat, searchCenter.lng, 5.0, searchQuery || null);
+            }, 300);
+            return () => clearTimeout(timeout);
         }
-    }, [searchCenter, fetchNearbyPlaces]);
+    }, [searchCenter, searchQuery, fetchNearbyPlaces]);
 
-    const filteredPlaces = (searchQuery ? places : nearbyPlaces).filter(place => {
-        // 1. Search Mode: Show everything that matches query (from global state)
-        if (searchQuery) {
-            return (
-                place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                place.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                place.address.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        // 2. Nearby Mode (No Search): Already filtered by DB in nearbyPlaces
-        return true;
-    }).slice(0, 20); // Always cap at 20 for performance
+    const filteredPlaces = nearbyPlaces.slice(0, 20); // Backend already filtered and sorted
 
     const selectedPlace = places.find(p => p.id === selectedPlaceId);
 

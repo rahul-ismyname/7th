@@ -97,7 +97,10 @@ export function PlaceList({ places, onSelect, selectedId, isLoading }) {
                             )}>
                                 <span className="text-xs font-medium truncate">{place.type}</span>
                                 <span className="w-1 h-1 rounded-full bg-current opacity-40" />
-                                <span className="text-xs font-medium">{place.distance}</span>
+                                <span className="text-xs font-medium flex items-center gap-1">
+                                    <MapPin className="ml-0.5 w-3 h-3 opacity-70" />
+                                    {place.distanceDisplay}
+                                </span>
                             </div>
                         </div>
 

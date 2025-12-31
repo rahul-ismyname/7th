@@ -255,7 +255,7 @@ export function PlaceDetails({ place, onBack }) {
                                 <div className="bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg text-xs font-black flex items-center gap-1 text-slate-900">
                                     <span>★</span> {place.rating}
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{place.distance}</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{place.distanceDisplay}</span>
                             </div>
                         </div>
 

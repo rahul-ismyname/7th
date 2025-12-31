@@ -58,9 +58,8 @@ export async function signupUser(formData) {
 
 
         // Determine Base URL
-        // FORCE PRODUCTION URL as requested by user
-        const BASE_URL = 'https://7th-l2kk.vercel.app';
-        console.log("Signup BASE_URL forced to:", BASE_URL);
+        const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        console.log("Signup BASE_URL set to:", BASE_URL);
 
         // 2. Generate Confirmation Link
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
@@ -142,7 +141,7 @@ export async function requestPasswordReset(formData) {
         { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const BASE_URL = 'https://7th-l2kk.vercel.app';
+    const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
     try {
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
