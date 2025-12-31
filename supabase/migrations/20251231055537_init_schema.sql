@@ -19,6 +19,7 @@ create table if not exists places (
   type text not null,
   address text not null,
   rating float default 0,
+  rating_count int default 0, -- Added for Rating System
   is_approved boolean default false,
   lat float not null,
   lng float not null,
@@ -60,7 +61,10 @@ create table if not exists tickets (
   
   -- Review Data
   counter_used text,
-  actual_wait_time int
+  actual_wait_time int,
+  -- Rating System
+  rating int check (rating >= 1 and rating <= 5),
+  review_text text
 );
 
 -- Claim Requests Table
@@ -76,17 +80,20 @@ create table if not exists claim_requests (
   created_at timestamptz default now()
 );
 
--- Idempotent updates for existing tables
+-- Idempotent updates for existing tables ensuring all cols exist
 alter table tickets add column if not exists counter text;
 alter table tickets add column if not exists preferred_time text;
 alter table tickets add column if not exists preferred_date text;
 alter table tickets add column if not exists counter_used text;
 alter table tickets add column if not exists actual_wait_time int;
+alter table tickets add column if not exists rating int check (rating >= 1 and rating <= 5);
+alter table tickets add column if not exists review_text text;
 
 -- Idempotent updates for places
 alter table places add column if not exists opening_time text;
 alter table places add column if not exists closing_time text;
 alter table places add column if not exists average_service_time int default 5;
+alter table places add column if not exists rating_count int default 0;
 
 -- 3. ENABLE REALTIME (Idempotent)
 do $$
@@ -152,6 +159,8 @@ drop policy if exists "User View Own Tickets" on tickets;
 drop policy if exists "User Create Own Tickets" on tickets;
 drop policy if exists "User Update Own Tickets" on tickets;
 drop policy if exists "User Delete Own Tickets" on tickets;
+drop policy if exists "Anon View Tickets" on tickets;
+drop policy if exists "Anon Create Tickets" on tickets;
 
 -- Policy 1: Users can see their own tickets
 create policy "User View Own Tickets" on tickets
@@ -170,8 +179,6 @@ create policy "User Delete Own Tickets" on tickets
   for delete using (auth.uid() = user_id);
   
 -- Policy 5: Allow public access for anonymous tickets (Optional fallback)
-drop policy if exists "Anon View Tickets" on tickets;
-drop policy if exists "Anon Create Tickets" on tickets;
 create policy "Anon View Tickets" on tickets for select using (user_id is null);
 create policy "Anon Create Tickets" on tickets for insert with check (user_id is null);
 
@@ -234,12 +241,14 @@ using (
 -- Places Indexes
 create index if not exists places_owner_id_idx on places(owner_id);
 create index if not exists places_is_approved_idx on places(is_approved);
+create index if not exists places_geo_idx on places using gist ((st_point(lng, lat)::geography));
 
 -- Tickets Indexes
 create index if not exists tickets_user_id_idx on tickets(user_id);
 create index if not exists tickets_place_id_idx on tickets(place_id);
 create index if not exists tickets_status_idx on tickets(status);
 create index if not exists tickets_created_at_idx on tickets(created_at desc);
+create index if not exists tickets_rating_idx on tickets(rating);
 
 
 -- 6. DUMMY DATA SEEDING (Optional)
@@ -252,7 +261,7 @@ values
   ('RTO Office', 'Government', 'Janpath', 3.1, false, 28.6280, 77.2180, 120, 'High', 0, null, null)
 on conflict do nothing; -- Prevent duplicates if run multiple times
 
--- 9. GEOSPATIAL FUNCTIONS
+-- 9. GEOSPATIAL FUNCTIONS (Updated with Claim Logic)
 drop function if exists get_nearby_places;
 
 create or replace function get_nearby_places(
