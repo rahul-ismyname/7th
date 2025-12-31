@@ -36,16 +36,17 @@ export async function GET(request) {
             const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
             const isLocalEnv = process.env.NODE_ENV === 'development'
 
-            // Fallback: Check for cookie if no explicit redirect is present
-            if (!next) {
-                const cookieStore = await cookies();
-                const nextCookie = cookieStore.get('waitly_next');
-                if (nextCookie) {
-                    next = nextCookie.value;
-                }
+            // Priority: Check for cookie (Force override if present)
+            const cookieStore = await cookies();
+            const nextCookie = cookieStore.get('waitly_next');
+            if (nextCookie) {
+                next = nextCookie.value;
+                // Optional: Clear cookie (or let it expire). 
+                // We'll let it expire to be safe or could clear it here if needed, 
+                // but for now simple priority is enough.
             }
 
-            // Secondary Fallback: Check if user is a vendor
+            // Fallback: Check if user is a vendor
             if (!next) {
                 const role = data?.session?.user?.user_metadata?.role;
                 if (role === 'vendor') {

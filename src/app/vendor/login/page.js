@@ -203,6 +203,7 @@ export default function VendorLoginPage() {
                                             provider: 'google',
                                             options: {
                                                 redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/vendor')}`,
+                                                data: { role: 'vendor' }
                                             },
                                         });
                                         if (error) {
