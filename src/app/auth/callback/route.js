@@ -54,6 +54,17 @@ export async function GET(request) {
                 }
             }
 
+            // Account Merging: Check if user is logging in with vendor intent but doesn't have the role
+            if (next?.includes('/vendor')) {
+                const currentRole = data?.session?.user?.user_metadata?.role;
+                if (currentRole !== 'vendor') {
+                    // Upgrade user to vendor
+                    await supabase.auth.updateUser({
+                        data: { role: 'vendor' }
+                    });
+                }
+            }
+
             if (next) {
                 // If in production with forwarded host (Vercel), ensure we use that domain
                 if (forwardedHost && !isLocalEnv) {

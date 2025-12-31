@@ -147,6 +147,17 @@ function HomeContent() {
                                             (user.email?.[0] || 'U').toUpperCase()
                                         )}
                                     </Link>
+
+                                    {/* Business Dashboard Switch - Only for Vendors */}
+                                    {user.user_metadata?.role === 'vendor' && (
+                                        <Link
+                                            href="/vendor"
+                                            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"
+                                            title="Business Dashboard"
+                                        >
+                                            <Store className="w-5 h-5" />
+                                        </Link>
+                                    )}
                                 </>
                             ) : (
                                 <Link
