@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Calendar as CalendarIcon, Clock, Sun, Moon, SunMedium } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -100,9 +101,14 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCount
         }
     };
 
-    return (
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    if (!mounted || !isOpen) return null; // Don't render until client-side & open
+
+    return createPortal(
         <div className={cn(
-            "fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300",
+            "fixed inset-0 z-[60] flex items-center justify-center p-4 transition-all duration-300 transform-none", // transform-none is key
             isOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
         )}>
             {/* Backdrop */}
@@ -284,7 +290,8 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCount
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 

@@ -233,7 +233,7 @@ export function PlaceDetails({ place, onBack }) {
                 </button>
             </div>
 
-            <div className="px-6 flex flex-col flex-1 overflow-y-auto pb-8">
+            <div className="px-6 flex flex-col flex-1 overflow-y-auto pb-32">
                 {/* Title Section - Fluid, no card */}
                 {/* Title Section - Conditionally rendered or flexible based on mode */}
                 {!hasJoined ? (

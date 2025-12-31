@@ -32,6 +32,17 @@ export async function GET(request) {
         )
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
+            const next = searchParams.get('next')
+            const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
+            const isLocalEnv = process.env.NODE_ENV === 'development'
+
+            if (next) {
+                // If in production with forwarded host (Vercel), ensure we use that domain
+                if (forwardedHost && !isLocalEnv) {
+                    return NextResponse.redirect(`https://${forwardedHost}${next}`)
+                }
+                return NextResponse.redirect(`${origin}${next}`)
+            }
             return NextResponse.redirect(`${origin}`)
         }
     }
