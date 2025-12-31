@@ -139,6 +139,7 @@ function LoginContent() {
 
                                         // Set cookie validation to ensure correct redirect
                                         document.cookie = `waitly_next=${finalNext}; path=/; max-age=600`;
+                                        localStorage.setItem("waitly_mode", "user");
 
                                         const { error } = await supabase.auth.signInWithOAuth({
                                             provider: 'google',
