@@ -27,7 +27,7 @@ import { Search, Ticket, Store, MapPin, Clock, Users, Sparkles, ChevronRight, Be
 import { BottomNav } from "@/components/mobile/BottomNav";
 
 function HomeContent() {
-    const { places, nearbyPlaces, fetchNearbyPlaces, fetchPlaceById } = usePlaces();
+    const { places, nearbyPlaces, fetchNearbyPlaces, fetchPlaceById, isLoading } = usePlaces();
     const { user } = useAuth();
     const { activeTickets } = useTickets();
     const router = useRouter();
@@ -224,14 +224,14 @@ function HomeContent() {
                                     <span className="text-xs font-medium text-slate-400">{filteredPlaces.length} found</span>
                                 </div>
 
-                                {filteredPlaces.length > 0 ? (
+                                {isLoading ? (
+                                    <PlaceListSkeleton count={6} />
+                                ) : filteredPlaces.length > 0 ? (
                                     <PlaceList
                                         places={filteredPlaces}
                                         onSelect={setSelectedPlaceId}
                                         selectedId={selectedPlaceId}
                                     />
-                                ) : nearbyPlaces.length === 0 && !searchQuery ? (
-                                    <PlaceListSkeleton count={6} />
                                 ) : (
                                     <div className="flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-300">
                                         <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">

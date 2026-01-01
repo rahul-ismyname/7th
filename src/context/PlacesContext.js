@@ -35,17 +35,18 @@ const PlacesContext = createContext(undefined);
 export function PlacesProvider({ children }) {
     const [places, setPlaces] = useState([]);
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
-    const [isPlacesLoaded, setIsPlacesLoaded] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Load Global Data - REMOVED for Scalability
     // We now rely on viewport-based fetching (fetchNearbyPlaces)
     // and on-demand fetching (fetchPlaceById)
     const loadData = useCallback(async () => {
-        setIsPlacesLoaded(true);
+        // No-op for now as we don't load global data anymore
     }, []);
 
     const fetchNearbyPlaces = useCallback(async (lat, lng, radiusKm = 5, searchQuery = null) => {
         try {
+            setIsLoading(true);
             console.log("Fetching nearby places:", { lat, lng, radiusKm, searchQuery });
             const { data, error } = await supabase.rpc('get_nearby_places', {
                 cur_lat: lat,
@@ -74,6 +75,8 @@ export function PlacesProvider({ children }) {
             }
         } catch (e) {
             console.error("Error in fetchNearbyPlaces:", e);
+        } finally {
+            setIsLoading(false);
         }
     }, []);
 
@@ -118,11 +121,11 @@ export function PlacesProvider({ children }) {
         <PlacesContext.Provider value={{
             places,
             nearbyPlaces,
-            isPlacesLoaded,
             fetchNearbyPlaces,
             fetchPlaceById,
             updatePlace,
-            refreshPlaces: loadData
+            refreshPlaces: loadData,
+            isLoading
         }}>
             {children}
         </PlacesContext.Provider>
