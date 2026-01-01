@@ -27,7 +27,7 @@ import { Search, Ticket, Store, MapPin, Clock, Users, Sparkles, ChevronRight, Be
 import { BottomNav } from "@/components/mobile/BottomNav";
 
 function HomeContent() {
-    const { places, nearbyPlaces, fetchNearbyPlaces } = usePlaces();
+    const { places, nearbyPlaces, fetchNearbyPlaces, fetchPlaceById } = usePlaces();
     const { user } = useAuth();
     const { activeTickets } = useTickets();
     const router = useRouter();
@@ -43,8 +43,13 @@ function HomeContent() {
     useEffect(() => {
         if (selectedPlaceId) {
             setMobileView("list");
+
+            // If selected place is not in cache (e.g. from Ticket history), fetch it
+            if (!places.find(p => p.id === selectedPlaceId)) {
+                fetchPlaceById(selectedPlaceId);
+            }
         }
-    }, [selectedPlaceId]);
+    }, [selectedPlaceId, places, fetchPlaceById]);
 
     // Get User Location on Mount
     useEffect(() => {

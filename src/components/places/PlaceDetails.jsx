@@ -29,6 +29,7 @@ import { useTickets } from "@/context/TicketsContext";
 
 export function PlaceDetails({ place, onBack }) {
     const { joinQueue, leaveQueue, submitReview, completeTicket, activeTickets } = useTickets();
+    const { updatePlace } = usePlaces();
     const [showWaitTimeModal, setShowWaitTimeModal] = useState(false);
     const [showJoinModal, setShowJoinModal] = useState(false);
     const [reviewTicket, setReviewTicket] = useState(null);
@@ -103,6 +104,29 @@ export function PlaceDetails({ place, onBack }) {
         // Optional: Subscription to update position live could go here
         // For now, fetch on mount/ticket change is MVP sufficient
     }, [myTicket, place.id]);
+
+    // Scoped Realtime Subscription for THIS place only
+    useEffect(() => {
+        if (!place.id) return;
+
+        const channel = supabase
+            .channel(`place:${place.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'places',
+                filter: `id=eq.${place.id}`
+            }, payload => {
+                if (payload.new) {
+                    updatePlace(place.id, payload.new);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            channel.unsubscribe();
+        };
+    }, [place.id, updatePlace]);
 
     const handleReviewSubmit = async (data) => {
         if (!myTicket) return;

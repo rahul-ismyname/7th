@@ -37,29 +37,11 @@ export function PlacesProvider({ children }) {
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
     const [isPlacesLoaded, setIsPlacesLoaded] = useState(false);
 
-    // Load Global Data
+    // Load Global Data - REMOVED for Scalability
+    // We now rely on viewport-based fetching (fetchNearbyPlaces)
+    // and on-demand fetching (fetchPlaceById)
     const loadData = useCallback(async () => {
-        try {
-            const { data: placesData, error: placesError } = await supabase
-                .from('places')
-                .select('*, counters(*)')
-                .eq('is_approved', true);
-
-            if (placesError) {
-                console.error("Error fetching places:", placesError);
-                setPlaces(DEFAULT_PLACES);
-            } else if (placesData && placesData.length > 0) {
-                const mappedPlaces = placesData.map(mapPlaceData);
-                setPlaces(mappedPlaces);
-            } else {
-                setPlaces(DEFAULT_PLACES);
-            }
-        } catch (e) {
-            console.error("CRITICAL ERROR IN LOAD DATA:", e);
-            setPlaces(DEFAULT_PLACES);
-        } finally {
-            setIsPlacesLoaded(true);
-        }
+        setIsPlacesLoaded(true);
     }, []);
 
     const fetchNearbyPlaces = useCallback(async (lat, lng, radiusKm = 5, searchQuery = null) => {
@@ -77,28 +59,55 @@ export function PlacesProvider({ children }) {
             }
 
             if (data) {
-                setNearbyPlaces(data.map(mapPlaceData));
+                const newPlaces = data.map(mapPlaceData);
+                setNearbyPlaces(newPlaces);
+
+                // Add to global cache (avoid duplicates)
+                setPlaces(prev => {
+                    const cache = new Map(prev.map(p => [p.id, p]));
+                    newPlaces.forEach(p => cache.set(p.id, p));
+                    return Array.from(cache.values());
+                });
             }
         } catch (e) {
             console.error("Error in fetchNearbyPlaces:", e);
         }
     }, []);
 
+    const fetchPlaceById = useCallback(async (placeId) => {
+        const { data, error } = await supabase
+            .from('places')
+            .select('*, counters(*)')
+            .eq('id', placeId)
+            .single();
+
+        if (data) {
+            const mapped = mapPlaceData(data);
+            setPlaces(prev => {
+                const cache = new Map(prev.map(p => [p.id, p]));
+                cache.set(mapped.id, mapped);
+                return Array.from(cache.values());
+            });
+            return mapped;
+        }
+        return null;
+    }, []);
+
+    const updatePlace = useCallback((placeId, newData) => {
+        // Optimistically update local state
+        setPlaces(prev => prev.map(p => p.id === placeId ? { ...p, ...mapPlaceData({ ...p, ...newData }) } : p));
+        setNearbyPlaces(prev => prev.map(p => p.id === placeId ? { ...p, ...mapPlaceData({ ...p, ...newData }) } : p));
+    }, []);
+
     useEffect(() => {
         loadData();
 
         // Realtime subscription for places
-        const placesSubscription = supabase
-            .channel('public:places')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'places' }, payload => {
-                // Refresh data to keep things simple and consistent with counters
-                // Alternatively, patch local state if high performance is needed
-                loadData();
-            })
-            .subscribe();
+        // Global Realtime subscription REMOVED to prevent "Firehose" issue.
+        // Components must subscribe to specific places using updatePlace.
 
         return () => {
-            placesSubscription.unsubscribe();
+            // Cleanup if needed
         };
     }, [loadData]);
 
@@ -108,6 +117,10 @@ export function PlacesProvider({ children }) {
             nearbyPlaces,
             isPlacesLoaded,
             fetchNearbyPlaces,
+            isPlacesLoaded,
+            fetchNearbyPlaces,
+            fetchPlaceById,
+            updatePlace,
             refreshPlaces: loadData
         }}>
             {children}
