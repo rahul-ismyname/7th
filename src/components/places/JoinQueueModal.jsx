@@ -185,7 +185,7 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCount
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="flex flex-col h-full"
+                            className="flex flex-col h-full overflow-hidden"
                         >
                             {/* Header */}
                             <div className="p-6 pb-2 bg-white z-10 shrink-0">
