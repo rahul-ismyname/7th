@@ -46,6 +46,7 @@ export function PlacesProvider({ children }) {
 
     const fetchNearbyPlaces = useCallback(async (lat, lng, radiusKm = 5, searchQuery = null) => {
         try {
+            console.log("Fetching nearby places:", { lat, lng, radiusKm, searchQuery });
             const { data, error } = await supabase.rpc('get_nearby_places', {
                 cur_lat: lat,
                 cur_lng: lng,
@@ -57,6 +58,8 @@ export function PlacesProvider({ children }) {
                 console.error("Error fetching nearby places:", error.message, error.details, error.hint);
                 return;
             }
+
+            console.log("RPC Data received:", data?.length || 0, "results");
 
             if (data) {
                 const newPlaces = data.map(mapPlaceData);
@@ -115,8 +118,6 @@ export function PlacesProvider({ children }) {
         <PlacesContext.Provider value={{
             places,
             nearbyPlaces,
-            isPlacesLoaded,
-            fetchNearbyPlaces,
             isPlacesLoaded,
             fetchNearbyPlaces,
             fetchPlaceById,

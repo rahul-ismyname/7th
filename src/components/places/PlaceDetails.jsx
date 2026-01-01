@@ -243,7 +243,7 @@ export function PlaceDetails({ place, onBack }) {
             }));
         }
         return [
-            { id: "default", label: "General Queue", icon: Info, color: "bg-blue-50 text-blue-600 border-blue-200" }
+            { id: "default", label: "General Service", icon: Info, color: "bg-blue-50 text-blue-600 border-blue-200" }
         ];
     }, [place.counters]);
 
@@ -430,8 +430,7 @@ export function PlaceDetails({ place, onBack }) {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs text-slate-400 font-medium">₹20 Service Charge</span>
+                                                        <div className="flex items-center justify-end">
                                                             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all opacity-0 group-hover:opacity-100" />
                                                         </div>
                                                     </div>

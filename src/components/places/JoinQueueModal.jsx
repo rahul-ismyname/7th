@@ -14,9 +14,9 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCount
 
     // Counter Name for display
     const counterName = useMemo(() => {
-        if (!initialCounterId || !place.counters) return "General Queue";
+        if (!initialCounterId || !place.counters) return "General Service";
         const c = place.counters.find(c => c.id === initialCounterId);
-        return c ? c.name : "General Queue";
+        return c ? c.name : "General Service";
     }, [place.counters, initialCounterId]);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -284,7 +284,7 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCount
                             <>Processing...</>
                         ) : (
                             <>
-                                <span>Confirm & Pay ₹20</span>
+                                <span>Confirm Booking</span>
                             </>
                         )}
                     </button>
