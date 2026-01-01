@@ -89,6 +89,7 @@ export default function VendorPage() {
                 .from('tickets')
                 .select('*')
                 .eq('place_id', selectedPlaceId)
+                .in('status', ['waiting', 'serving'])
                 .order('created_at', { ascending: true });
 
             if (data) {

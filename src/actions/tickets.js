@@ -30,53 +30,16 @@ export async function submitReviewAction(ticketId, reviewData) {
             return { success: false, error: error.message };
         }
 
-        // 2. Update Place Stats (EMA for time, Moving Average for Rating)
+        // 2. Update Place Stats via Atomic RPC
         if (ticketData?.place_id) {
-            const placeId = ticketData.place_id;
+            const { error: rpcError } = await supabaseAdmin.rpc('update_place_stats', {
+                p_place_id: ticketData.place_id,
+                p_reported_wait_time: reviewData.actualWaitTime ? Number(reviewData.actualWaitTime) : null,
+                p_new_rating: reviewData.rating ? Number(reviewData.rating) : null
+            });
 
-            // Fetch current place stats
-            const { data: place, error: placeError } = await supabaseAdmin
-                .from('places')
-                .select('average_service_time, rating, rating_count')
-                .eq('id', placeId)
-                .single();
-
-            if (place) {
-                const updates = {};
-
-                // Update Service Time (EMA)
-                if (reviewData.actualWaitTime) {
-                    const oldAvg = place.average_service_time || 5;
-                    const reportedTime = Number(reviewData.actualWaitTime);
-                    const alpha = 0.1; // 10% weight to new feedback
-                    updates.average_service_time = Math.round((oldAvg * (1 - alpha)) + (reportedTime * alpha));
-                }
-
-                // Update Rating (Cumulative Moving Average)
-                if (reviewData.rating) {
-                    const currentRating = place.rating || 0;
-                    const currentCount = place.rating_count || 0;
-                    const newRatingVal = Number(reviewData.rating);
-
-                    const newCount = currentCount + 1;
-                    // Calculate new average: (old * count + new) / (count + 1)
-                    // limit to 1 decimal place
-                    const newRating = Math.round(((currentRating * currentCount) + newRatingVal) / newCount * 10) / 10;
-
-                    updates.rating = newRating;
-                    updates.rating_count = newCount;
-                }
-
-                if (Object.keys(updates).length > 0) {
-                    const { error: updateError } = await supabaseAdmin
-                        .from('places')
-                        .update(updates)
-                        .eq('id', placeId);
-
-                    if (updateError) {
-                        console.error("Server Action: Failed to update place stats:", updateError);
-                    }
-                }
+            if (rpcError) {
+                console.error("Server Action: Failed to update place stats via RPC:", rpcError);
             }
         }
 
