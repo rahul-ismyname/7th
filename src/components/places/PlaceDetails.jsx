@@ -278,7 +278,7 @@ export function PlaceDetails({ place, onBack }) {
                                     {place.address}
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-1">
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                 <div className="bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg text-xs font-black flex items-center gap-1 text-slate-900">
                                     <span>★</span> {place.rating}
                                 </div>
@@ -287,10 +287,10 @@ export function PlaceDetails({ place, onBack }) {
                                     href={`https://www.google.com/maps/dir/?api=1&destination=${place.coordinates.lat},${place.coordinates.lng}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all mt-1"
+                                    className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 px-4 py-2.5 rounded-xl text-xs font-bold transition-all mt-1 min-w-[100px] border border-transparent hover:border-indigo-100 shadow-sm"
                                     title="Get Directions"
                                 >
-                                    <Navigation className="w-3.5 h-3.5" />
+                                    <Navigation className="w-4 h-4" />
                                     Directions
                                 </a>
                             </div>
