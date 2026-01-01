@@ -16,7 +16,8 @@ import {
     Check,
     Briefcase,
     Banknote,
-    ArrowRight
+    ArrowRight,
+    Navigation
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { AddWaitTimeModal } from "./AddWaitTimeModal";
@@ -282,6 +283,16 @@ export function PlaceDetails({ place, onBack }) {
                                     <span>★</span> {place.rating}
                                 </div>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{place.distanceDisplay}</span>
+                                <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${place.coordinates.lat},${place.coordinates.lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all mt-1"
+                                    title="Get Directions"
+                                >
+                                    <Navigation className="w-3.5 h-3.5" />
+                                    Directions
+                                </a>
                             </div>
                         </div>
 
