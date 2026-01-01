@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { PlaceCardSkeleton } from "@/components/places/PlaceCardSkeleton";
 import { MapPin, Star, BadgeCheck, Activity, Landmark, Stethoscope, Utensils, Building2, Library, Store, Clock, Users, Zap } from "lucide-react";
 
 const CATEGORY_ICONS = {
@@ -23,17 +24,8 @@ export function PlaceListSkeleton({ count = 5 }) {
     return (
         <div className="flex flex-col gap-2 p-4 animate-in fade-in duration-300">
             {[...Array(count)].map((_, i) => (
-                <div
-                    key={i}
-                    className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 animate-pulse"
-                    style={{ animationDelay: `${i * 50}ms` }}
-                >
-                    <div className="w-12 h-12 rounded-xl bg-slate-200" />
-                    <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-slate-200 rounded-lg w-3/4" />
-                        <div className="h-3 bg-slate-100 rounded-lg w-1/2" />
-                    </div>
-                    <div className="w-12 h-6 bg-slate-100 rounded-lg" />
+                <div key={i} style={{ animationDelay: `${i * 50}ms` }} className="animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards">
+                    <PlaceCardSkeleton />
                 </div>
             ))}
         </div>

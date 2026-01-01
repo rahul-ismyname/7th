@@ -5,6 +5,7 @@ import { usePlaces } from "@/context/PlacesContext";
 import { useTickets } from "@/context/TicketsContext";
 import { Clock, MapPin, Ticket as TicketIcon, ArrowRight, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import Logo from "@/components/Logo";
 
 // Helper to send browser notification
@@ -131,97 +132,116 @@ export function UserTickets({ onSelectPlace }) {
                     activeTickets.length === 0 ? (
                         <div className="text-center py-10 text-slate-400 text-sm font-medium">No active tickets.</div>
                     ) : (
-                        activeTickets.map((ticket) => {
-                            const place = places.find(p => p.id === ticket.placeId);
-                            if (!place) return null;
+                        <AnimatePresence mode="popLayout">
+                            {activeTickets.map((ticket) => {
+                                const place = places.find(p => p.id === ticket.placeId);
+                                if (!place) return null;
 
-                            return (
-                                <div key={ticket.ticketId} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden relative group transition-all hover:shadow-md hover:border-indigo-100">
-                                    {/* Active Ticket Card Content (Same as before but refined) */}
-                                    <div className="p-5 border-b border-slate-50 flex justify-between items-start bg-gradient-to-br from-white to-slate-50/50">
-                                        <div>
-                                            <h3 className="font-bold text-slate-900 text-lg">{place.name}</h3>
-                                            <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1 font-medium">
-                                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                                {place.address}
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Token</span>
-                                            <span className="text-3xl font-black text-indigo-600 block leading-none tracking-tighter">{ticket.tokenNumber}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-5 grid grid-cols-2 gap-4">
-                                        <div>
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-2">Status</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`w-2.5 h-2.5 rounded-full shadow-sm ${ticket.status === 'serving' ? 'bg-emerald-500 animate-ping' : 'bg-indigo-500 animate-pulse'}`} />
-                                                <span className={`text-sm font-bold ${ticket.status === 'serving' ? 'text-emerald-600' : 'text-indigo-600'}`}>
-                                                    {ticket.status === 'serving' ? 'Serving Now!' : 'Waiting'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-2">
-                                                {countdown !== null && countdown > 0 ? 'Time Left' : 'Est. Wait'}
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <Clock className={`w-4 h-4 ${countdown !== null && countdown <= 300 ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`} />
-                                                <span className={`text-sm font-bold ${countdown !== null && countdown <= 300 ? 'text-rose-600' : 'text-slate-700'}`}>
-                                                    {countdown !== null ? (countdown > 0 ? formatCountdown(countdown) : "It's your turn!") : `${ticket.estimatedWait} mins`}
-                                                </span>
-                                            </div>
-                                            {countdown !== null && countdown <= 300 && countdown > 0 && (
-                                                <div className="mt-2 text-xs font-bold text-rose-500 flex items-center gap-1">
-                                                    <Bell className="w-3 h-3" /> Almost there!
+                                return (
+                                    <motion.div
+                                        key={ticket.ticketId}
+                                        layout
+                                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden relative group transition-all hover:shadow-md hover:border-indigo-100"
+                                    >
+                                        {/* Active Ticket Card Content (Same as before but refined) */}
+                                        <div className="p-5 border-b border-slate-50 flex justify-between items-start bg-gradient-to-br from-white to-slate-50/50">
+                                            <div>
+                                                <h3 className="font-bold text-slate-900 text-lg">{place.name}</h3>
+                                                <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1 font-medium">
+                                                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                                    {place.address}
                                                 </div>
-                                            )}
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Token</span>
+                                                <span className="text-3xl font-black text-indigo-600 block leading-none tracking-tighter">{ticket.tokenNumber}</span>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="p-2 bg-slate-50/50 border-t border-slate-100 flex gap-2">
-                                        <button
-                                            onClick={() => onSelectPlace(place.id)}
-                                            className="flex-1 py-3 text-xs font-bold text-slate-600 hover:text-indigo-600 hover:bg-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border border-transparent hover:border-slate-200"
-                                        >
-                                            View Place <ArrowRight className="w-3 h-3" />
-                                        </button>
-                                        <button
-                                            onClick={() => leaveQueue(ticket.placeId)}
-                                            className="px-6 py-3 text-xs font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                                        >
-                                            Leave
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })
+                                        <div className="p-5 grid grid-cols-2 gap-4">
+                                            <div>
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-2">Status</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`w-2.5 h-2.5 rounded-full shadow-sm ${ticket.status === 'serving' ? 'bg-emerald-500 animate-ping' : 'bg-indigo-500 animate-pulse'}`} />
+                                                    <span className={`text-sm font-bold ${ticket.status === 'serving' ? 'text-emerald-600' : 'text-indigo-600'}`}>
+                                                        {ticket.status === 'serving' ? 'Serving Now!' : 'Waiting'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-2">
+                                                    {countdown !== null && countdown > 0 ? 'Time Left' : 'Est. Wait'}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className={`w-4 h-4 ${countdown !== null && countdown <= 300 ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`} />
+                                                    <span className={`text-sm font-bold ${countdown !== null && countdown <= 300 ? 'text-rose-600' : 'text-slate-700'}`}>
+                                                        {countdown !== null ? (countdown > 0 ? formatCountdown(countdown) : "It's your turn!") : `${ticket.estimatedWait} mins`}
+                                                    </span>
+                                                </div>
+                                                {countdown !== null && countdown <= 300 && countdown > 0 && (
+                                                    <div className="mt-2 text-xs font-bold text-rose-500 flex items-center gap-1">
+                                                        <Bell className="w-3 h-3" /> Almost there!
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="p-2 bg-slate-50/50 border-t border-slate-100 flex gap-2">
+                                            <button
+                                                onClick={() => onSelectPlace(place.id)}
+                                                className="flex-1 py-3 text-xs font-bold text-slate-600 hover:text-indigo-600 hover:bg-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm border border-transparent hover:border-slate-200"
+                                            >
+                                                View Place <ArrowRight className="w-3 h-3" />
+                                            </button>
+                                            <button
+                                                onClick={() => leaveQueue(ticket.placeId)}
+                                                className="px-6 py-3 text-xs font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                            >
+                                                Leave
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
                     )
                 ) : (
                     // HISTORY VIEW
                     historyTickets.length === 0 ? (
                         <div className="text-center py-10 text-slate-400 text-sm font-medium">No history available.</div>
                     ) : (
-                        historyTickets.map((ticket) => {
-                            const place = places.find(p => p.id === ticket.placeId);
-                            return (
-                                <div key={ticket.ticketId} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between opacity-75 hover:opacity-100 transition-opacity">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${ticket.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                                            {ticket.status === 'completed' ? 'DONE' : 'X'}
+                        <AnimatePresence mode="popLayout">
+                            {historyTickets.map((ticket, i) => {
+                                const place = places.find(p => p.id === ticket.placeId);
+                                return (
+                                    <motion.div
+                                        key={ticket.ticketId}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 0.75, x: 0 }}
+                                        whileHover={{ opacity: 1, scale: 1.02 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between transition-all"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${ticket.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                                                {ticket.status === 'completed' ? 'DONE' : 'X'}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900 text-sm">{place?.name || "Unknown Place"}</div>
+                                                <div className="text-xs text-slate-400">{new Date(ticket.timestamp).toLocaleDateString()} at {new Date(ticket.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-slate-900 text-sm">{place?.name || "Unknown Place"}</div>
-                                            <div className="text-xs text-slate-400">{new Date(ticket.timestamp).toLocaleDateString()} at {new Date(ticket.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div className="text-right">
+                                            <div className="font-bold text-slate-300 text-sm">{ticket.tokenNumber}</div>
                                         </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="font-bold text-slate-300 text-sm">{ticket.tokenNumber}</div>
-                                    </div>
-                                </div>
-                            )
-                        })
+                                    </motion.div>
+                                )
+                            })}
+                        </AnimatePresence>
                     )
                 )}
             </div>

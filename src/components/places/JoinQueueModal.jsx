@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Calendar as CalendarIcon, Clock, Sun, Moon, SunMedium } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCounterId }) {
     const datePickerRef = useRef(null);
@@ -11,6 +12,7 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCount
         preferredTime: "",
         preferredDate: new Date().toISOString().split('T')[0]
     });
+    const [isSuccess, setIsSuccess] = useState(false);
 
     // Counter Name for display
     const counterName = useMemo(() => {
@@ -93,10 +95,13 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCount
                 counterId: initialCounterId === "default" ? null : initialCounterId
             };
             await onConfirm(dataToSubmit);
-            onClose();
+            setIsSuccess(true);
+            setTimeout(() => {
+                onClose();
+                setTimeout(() => setIsSuccess(false), 500);
+            }, 2000);
         } catch (error) {
             console.error("Error joining queue:", error);
-        } finally {
             setIsSubmitting(false);
         }
     };
@@ -122,173 +127,235 @@ export function JoinQueueModal({ isOpen, onClose, place, onConfirm, initialCount
                 "bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl z-10 overflow-hidden transform transition-all duration-500 flex flex-col max-h-[90vh]",
                 isOpen ? "translate-y-0 scale-100" : "translate-y-8 scale-95"
             )}>
-                {/* Header */}
-                <div className="p-6 pb-2 bg-white z-10">
-                    <div className="flex justify-between items-center mb-1">
-                        <div>
-                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Select Time</h2>
-                            <p className="text-slate-500 text-sm font-medium">for {counterName}</p>
-                        </div>
-                        <button onClick={onClose} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-800 transition-colors">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Scrollable Form Area */}
-                <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-8 scrollbar-hide">
-
-                    {/* Date Selection */}
-                    <div className="space-y-3">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                            <CalendarIcon className="w-3 h-3" /> Date
-                        </label>
-                        <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide snap-x">
-                            {nextDays.map((date, i) => {
-                                const dateStr = date.toISOString().split('T')[0];
-                                const isSelected = formData.preferredDate === dateStr;
-                                const { day, date: dateNum } = formatDateLabel(date, i);
-
-                                return (
-                                    <button
-                                        key={dateStr}
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, preferredDate: dateStr }))}
-                                        className={cn(
-                                            "min-w-[64px] h-[76px] rounded-2xl flex flex-col items-center justify-center gap-1 border-2 transition-all flex-shrink-0 snap-center",
-                                            isSelected
-                                                ? "bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-200 scale-105"
-                                                : "bg-white border-slate-100 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                                        )}
-                                    >
-                                        <span className={cn("text-[10px] font-bold uppercase", isSelected ? "text-slate-400" : "text-slate-400")}>
-                                            {day}
-                                        </span>
-                                        <span className="text-xl font-black">
-                                            {dateNum}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                            {/* Picker */}
-                            <div className="relative min-w-[64px] h-[76px]">
-                                <input
-                                    ref={datePickerRef}
-                                    type="date"
-                                    min={new Date().toISOString().split('T')[0]}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, preferredDate: e.target.value }))}
-                                    className="invisible absolute inset-0 bottom-0 left-0 w-1 h-1"
+                {/* Content Logic */}
+                <AnimatePresence mode="wait">
+                    {isSuccess ? (
+                        <motion.div
+                            key="success"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[400px]"
+                        >
+                            <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6 relative">
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.2 }}
+                                    className="w-full h-full absolute inset-0 bg-emerald-100 rounded-full"
                                 />
+                                <motion.svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="48"
+                                    height="48"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-emerald-600 z-10"
+                                    initial={{ pathLength: 0, opacity: 0 }}
+                                    animate={{ pathLength: 1, opacity: 1 }}
+                                    transition={{ duration: 0.5, delay: 0.4 }}
+                                >
+                                    <polyline points="20 6 9 17 4 12" />
+                                </motion.svg>
+                            </div>
+                            <motion.h2
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.6 }}
+                                className="text-3xl font-black text-slate-900 mb-2"
+                            >
+                                You're In!
+                            </motion.h2>
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.8 }}
+                                className="text-slate-500 font-medium"
+                            >
+                                Ticket confirmed for {counterName}
+                            </motion.p>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="form"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex flex-col h-full"
+                        >
+                            {/* Header */}
+                            <div className="p-6 pb-2 bg-white z-10 shrink-0">
+                                <div className="flex justify-between items-center mb-1">
+                                    <div>
+                                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Select Time</h2>
+                                        <p className="text-slate-500 text-sm font-medium">for {counterName}</p>
+                                    </div>
+                                    <button onClick={onClose} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-800 transition-colors">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Scrollable Form Area */}
+                            <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-8 scrollbar-hide">
+                                {/* Date Selection */}
+                                <div className="space-y-3">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                        <CalendarIcon className="w-3 h-3" /> Date
+                                    </label>
+                                    <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide snap-x">
+                                        {nextDays.map((date, i) => {
+                                            const dateStr = date.toISOString().split('T')[0];
+                                            const isSelected = formData.preferredDate === dateStr;
+                                            const { day, date: dateNum } = formatDateLabel(date, i);
+
+                                            return (
+                                                <button
+                                                    key={dateStr}
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, preferredDate: dateStr }))}
+                                                    className={cn(
+                                                        "min-w-[64px] h-[76px] rounded-2xl flex flex-col items-center justify-center gap-1 border-2 transition-all flex-shrink-0 snap-center",
+                                                        isSelected
+                                                            ? "bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-200 scale-105"
+                                                            : "bg-white border-slate-100 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    <span className={cn("text-[10px] font-bold uppercase", isSelected ? "text-slate-400" : "text-slate-400")}>
+                                                        {day}
+                                                    </span>
+                                                    <span className="text-xl font-black">
+                                                        {dateNum}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                        {/* Picker */}
+                                        <div className="relative min-w-[64px] h-[76px]">
+                                            <input
+                                                ref={datePickerRef}
+                                                type="date"
+                                                min={new Date().toISOString().split('T')[0]}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, preferredDate: e.target.value }))}
+                                                className="invisible absolute inset-0 bottom-0 left-0 w-1 h-1"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => datePickerRef.current?.showPicker()}
+                                                className="w-full h-full rounded-2xl flex flex-col items-center justify-center gap-1 border-2 border-dashed border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-300 transition-all"
+                                            >
+                                                <CalendarIcon className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="w-full h-px bg-slate-100" />
+
+                                {/* Time Selection - Grid Layout */}
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                            <Clock className="w-3 h-3" /> Time Slots
+                                        </label>
+                                        {formData.preferredDate && (
+                                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
+                                                {totalSlots} slots
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {totalSlots > 0 ? (
+                                        <div className="space-y-6">
+                                            {/* Morning */}
+                                            {timeSlots.morning.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                                                        <Sun className="w-3 h-3 text-amber-500" /> Morning
+                                                    </div>
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {timeSlots.morning.map(time => (
+                                                            <TimeSlotButton
+                                                                key={time}
+                                                                time={time}
+                                                                selected={formData.preferredTime === time}
+                                                                onClick={() => setFormData(prev => ({ ...prev, preferredTime: time }))}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Afternoon */}
+                                            {timeSlots.afternoon.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                                                        <SunMedium className="w-3 h-3 text-orange-500" /> Afternoon
+                                                    </div>
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {timeSlots.afternoon.map(time => (
+                                                            <TimeSlotButton
+                                                                key={time}
+                                                                time={time}
+                                                                selected={formData.preferredTime === time}
+                                                                onClick={() => setFormData(prev => ({ ...prev, preferredTime: time }))}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Evening */}
+                                            {timeSlots.evening.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                                                        <Moon className="w-3 h-3 text-indigo-500" /> Evening
+                                                    </div>
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {timeSlots.evening.map(time => (
+                                                            <TimeSlotButton
+                                                                key={time}
+                                                                time={time}
+                                                                selected={formData.preferredTime === time}
+                                                                onClick={() => setFormData(prev => ({ ...prev, preferredTime: time }))}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="p-6 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                            <p className="text-slate-400 text-sm font-medium">No slots available</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Footer Action */}
+                            <div className="p-6 pt-2 bg-white border-t border-slate-100 z-10 shrink-0">
                                 <button
                                     type="button"
-                                    onClick={() => datePickerRef.current?.showPicker()}
-                                    className="w-full h-full rounded-2xl flex flex-col items-center justify-center gap-1 border-2 border-dashed border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-300 transition-all"
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting || !formData.preferredDate || !formData.preferredTime}
+                                    className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-lg py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
                                 >
-                                    <CalendarIcon className="w-5 h-5" />
+                                    {isSubmitting ? (
+                                        <>Processing...</>
+                                    ) : (
+                                        <>
+                                            <span>Confirm Booking</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="w-full h-px bg-slate-100" />
-
-                    {/* Time Selection - Grid Layout */}
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                                <Clock className="w-3 h-3" /> Time Slots
-                            </label>
-                            {formData.preferredDate && (
-                                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
-                                    {totalSlots} slots
-                                </span>
-                            )}
-                        </div>
-
-                        {totalSlots > 0 ? (
-                            <div className="space-y-6">
-                                {/* Morning */}
-                                {timeSlots.morning.length > 0 && (
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                                            <Sun className="w-3 h-3 text-amber-500" /> Morning
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {timeSlots.morning.map(time => (
-                                                <TimeSlotButton
-                                                    key={time}
-                                                    time={time}
-                                                    selected={formData.preferredTime === time}
-                                                    onClick={() => setFormData(prev => ({ ...prev, preferredTime: time }))}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Afternoon */}
-                                {timeSlots.afternoon.length > 0 && (
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                                            <SunMedium className="w-3 h-3 text-orange-500" /> Afternoon
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {timeSlots.afternoon.map(time => (
-                                                <TimeSlotButton
-                                                    key={time}
-                                                    time={time}
-                                                    selected={formData.preferredTime === time}
-                                                    onClick={() => setFormData(prev => ({ ...prev, preferredTime: time }))}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Evening */}
-                                {timeSlots.evening.length > 0 && (
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                                            <Moon className="w-3 h-3 text-indigo-500" /> Evening
-                                        </div>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {timeSlots.evening.map(time => (
-                                                <TimeSlotButton
-                                                    key={time}
-                                                    time={time}
-                                                    selected={formData.preferredTime === time}
-                                                    onClick={() => setFormData(prev => ({ ...prev, preferredTime: time }))}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="p-6 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                                <p className="text-slate-400 text-sm font-medium">No slots available</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Footer Action */}
-                <div className="p-6 pt-2 bg-white border-t border-slate-100 z-10">
-                    <button
-                        type="button"
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || !formData.preferredDate || !formData.preferredTime}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-lg py-4 rounded-2xl shadow-xl shadow-indigo-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
-                    >
-                        {isSubmitting ? (
-                            <>Processing...</>
-                        ) : (
-                            <>
-                                <span>Confirm Booking</span>
-                            </>
-                        )}
-                    </button>
-                </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>,
         document.body

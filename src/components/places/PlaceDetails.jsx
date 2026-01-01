@@ -19,6 +19,7 @@ import {
     ArrowRight,
     Navigation
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
 import { AddWaitTimeModal } from "./AddWaitTimeModal";
 import { JoinQueueModal } from "./JoinQueueModal";
@@ -165,8 +166,7 @@ export function PlaceDetails({ place, onBack }) {
                 alert("The request took too long. Please check your connection and try again.");
             }
         } finally {
-            // ALWAYS close the modal and reset state
-            setShowJoinModal(false);
+            // Modal handles closing after animation
             setIsJoining(false);
         }
     };
@@ -249,7 +249,13 @@ export function PlaceDetails({ place, onBack }) {
     }, [place.counters]);
 
     return (
-        <div className="flex flex-col h-full bg-white relative">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col h-full bg-white relative"
+        >
             {/* Nav Bar */}
             <div className="px-5 pt-6 pb-2 shrink-0 flex items-center">
                 <button
@@ -571,6 +577,6 @@ export function PlaceDetails({ place, onBack }) {
                 isOpen={showClaimModal}
                 onClose={() => setShowClaimModal(false)}
             />
-        </div >
+        </motion.div >
     );
 }
