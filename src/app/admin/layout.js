@@ -3,12 +3,28 @@
 import { useAuth } from "@/context/AuthContext";
 import { ShieldCheck, LayoutDashboard, FileText, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 export default function AdminLayout({ children }) {
-    const { user, signOut } = useAuth();
+    const { user, isAuthLoaded, signOut } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (isAuthLoaded && (!user || user.role !== 'admin')) {
+            router.replace("/");
+        }
+    }, [user, isAuthLoaded, router]);
+
+    if (!isAuthLoaded || (user && user.role !== 'admin')) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     const menuItems = [
         {

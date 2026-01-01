@@ -13,12 +13,17 @@ export function AuthProvider({ children }) {
         // 1. Get initial session with fresh user data
         const initAuth = async () => {
             const { data: { user }, error } = await supabase.auth.getUser();
-            if (error) {
-                // Fallback to session check if getUser fails (e.g. network), though usually error means not logged in
-                const { data: { session } } = await supabase.auth.getSession();
-                setUser(session?.user || null);
+            if (user) {
+                // Fetch profile to get role
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                setUser({ ...user, role: profile?.role || 'user' });
             } else {
-                setUser(user);
+                setUser(null);
             }
             setIsAuthLoaded(true);
         };
@@ -28,11 +33,15 @@ export function AuthProvider({ children }) {
         const { data: authListener } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 if (session?.user) {
-                    // On sign in, we might want to ensure we have the latest claims
-                    // But for performance, we'll try to stick to session, unless it's a dedicated refresh
                     if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                        // Optionally fetch fresh user here too, but start with session to be responsive
-                        setUser(session.user);
+                        // Fetch profile to get role on sign in
+                        const { data: profile } = await supabase
+                            .from('profiles')
+                            .select('role')
+                            .eq('id', session.user.id)
+                            .single();
+
+                        setUser({ ...session.user, role: profile?.role || 'user' });
                     } else {
                         setUser(session.user);
                     }
