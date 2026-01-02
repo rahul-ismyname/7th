@@ -12,43 +12,65 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         // 1. Get initial session with fresh user data
         const initAuth = async () => {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (user) {
-                // Fetch profile to get role
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', user.id)
-                    .single();
+            console.log("AuthContext: initAuth started");
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                console.log("AuthContext: getUser result:", { user: user?.email, error });
 
-                setUser({ ...user, role: profile?.role || 'user' });
-            } else {
-                setUser(null);
+                if (user) {
+                    console.log("AuthContext: Fetching profile for role...");
+                    // Fetch profile to get role
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profileError) {
+                        console.warn("AuthContext: Profile fetch error (non-critical):", profileError);
+                    }
+
+                    setUser({ ...user, role: profile?.role || 'user' });
+                    console.log("AuthContext: User set with role:", profile?.role || 'user');
+                } else {
+                    setUser(null);
+                }
+            } catch (err) {
+                console.error("AuthContext: initAuth exception:", err);
+            } finally {
+                setIsAuthLoaded(true);
+                console.log("AuthContext: isAuthLoaded set to true");
             }
-            setIsAuthLoaded(true);
         };
         initAuth();
 
         // 2. Auth Listener
         const { data: authListener } = supabase.auth.onAuthStateChange(
             async (event, session) => {
-                if (session?.user) {
-                    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                        // Fetch profile to get role on sign in
-                        const { data: profile } = await supabase
-                            .from('profiles')
-                            .select('role')
-                            .eq('id', session.user.id)
-                            .single();
+                console.log("AuthContext: onAuthStateChange event:", event, "User:", session?.user?.email);
+                try {
+                    if (session?.user) {
+                        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                            console.log("AuthContext: Fetching profile for role (listener)...");
+                            // Fetch profile to get role on sign in
+                            const { data: profile } = await supabase
+                                .from('profiles')
+                                .select('role')
+                                .eq('id', session.user.id)
+                                .single();
 
-                        setUser({ ...session.user, role: profile?.role || 'user' });
+                            setUser({ ...session.user, role: profile?.role || 'user' });
+                        } else {
+                            setUser(session.user);
+                        }
                     } else {
-                        setUser(session.user);
+                        setUser(null);
                     }
-                } else {
-                    setUser(null);
+                } catch (err) {
+                    console.error("AuthContext: listener exception:", err);
+                } finally {
+                    setIsAuthLoaded(true);
                 }
-                setIsAuthLoaded(true);
             }
         );
 
