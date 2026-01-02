@@ -52,12 +52,25 @@ export function AuthProvider({ children }) {
                     if (session?.user) {
                         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                             console.log("AuthContext: Fetching profile for role (listener)...");
-                            // Fetch profile to get role on sign in
-                            const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('role')
-                                .eq('id', session.user.id)
-                                .single();
+
+                            // Timeout wrapper for DB call
+                            const fetchProfileWithTimeout = async () => {
+                                const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000));
+                                const fetch = supabase
+                                    .from('profiles')
+                                    .select('role')
+                                    .eq('id', session.user.id)
+                                    .single();
+                                return Promise.race([timeout, fetch]);
+                            };
+
+                            let profile = null;
+                            try {
+                                const { data } = await fetchProfileWithTimeout();
+                                profile = data;
+                            } catch (e) {
+                                console.warn("AuthContext: Profile fetch timed out or failed, defaulting to user role");
+                            }
 
                             setUser({ ...session.user, role: profile?.role || 'user' });
                         } else {
