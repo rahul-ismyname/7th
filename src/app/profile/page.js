@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { User, Lock, LogOut, ArrowLeft, CheckCircle2, AlertCircle, Camera, Bell, History, HelpCircle, ChevronRight, Mail, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PushNotificationManager from "@/components/notifications/PushNotificationManager";
 
 export default function ProfilePage() {
     const { user, signOut } = useAuth();
@@ -332,10 +333,7 @@ export default function ProfilePage() {
                                             <p className="text-xs text-slate-400 max-w-[200px] md:max-w-none">Get buzzed when it's your turn.</p>
                                         </div>
                                     </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={notifications.push} onChange={() => setNotifications({ ...notifications, push: !notifications.push })} className="sr-only peer" />
-                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                    </label>
+                                    <PushNotificationManager />
                                 </div>
                             </div>
                         </div>
