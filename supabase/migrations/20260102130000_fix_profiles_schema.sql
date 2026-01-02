@@ -1,9 +1,7 @@
--- ====================================================
--- Waitly Database Setup Script
--- Copy and run this in the Supabase SQL Editor
--- ====================================================
+-- Migration: Fix Profiles Schema (2026-01-02)
+-- Create Profiles Table and Triggers for Auth
 
--- 1. Create Profiles Table (Fixes the login hang)
+-- 1. Create Profiles Table
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   email text,
