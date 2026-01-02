@@ -31,6 +31,12 @@ export async function GET(request) {
             }
         )
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+        console.log("Auth Callback - Exchange Code Result:", {
+            hasSession: !!data?.session,
+            user: data?.session?.user?.email,
+            error: error
+        });
+
         if (!error) {
             let next = searchParams.get('next')
             const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
@@ -65,13 +71,17 @@ export async function GET(request) {
             }
 
             if (next) {
+                console.log("Auth Callback - Redirecting to next:", next);
                 // If in production with forwarded host (Vercel), ensure we use that domain
                 if (forwardedHost && !isLocalEnv) {
                     return NextResponse.redirect(`https://${forwardedHost}${next}`)
                 }
                 return NextResponse.redirect(`${origin}${next}`)
             }
+            console.log("Auth Callback - Redirecting to root");
             return NextResponse.redirect(`${origin}`)
+        } else {
+            console.error("Auth Callback - Exchange Code Error:", error);
         }
     }
 

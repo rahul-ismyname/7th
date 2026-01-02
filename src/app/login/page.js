@@ -22,25 +22,30 @@ function LoginContent() {
 
     const handleAuth = async (e) => {
         e.preventDefault();
+        console.log("handleAuth triggered", { mode, email });
         setIsLoading(true);
         setMessage(null);
 
         try {
             if (mode === "forgot") {
+                console.log("Processing forgot password...");
                 const formData = new FormData();
                 formData.append('email', email);
                 const result = await requestPasswordReset(formData);
+                console.log("Forgot password result:", result);
                 if (result.error) {
                     setMessage(result.error);
                 } else {
                     setMessage("Recovery link sent! Check your email.");
                 }
             } else if (mode === "signup") {
+                console.log("Processing signup...");
                 const formData = new FormData();
                 formData.append('email', email);
                 formData.append('password', password);
 
                 const result = await signupUser(formData);
+                console.log("Signup result:", result);
 
                 if (result.error) {
                     setMessage(result.error);
@@ -50,10 +55,12 @@ function LoginContent() {
                     setPassword("");
                 }
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                console.log("Processing signin...");
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
+                console.log("Signin result:", { data, error });
 
                 if (error) {
                     setMessage(error.message);
@@ -63,13 +70,16 @@ function LoginContent() {
                     const isVendor = nextPath?.includes('/vendor') || role === 'vendor';
                     localStorage.setItem("waitly_mode", isVendor ? "vendor" : "user");
 
+                    console.log("Redirecting to:", nextPath || "/");
                     router.push(nextPath || "/");
                     router.refresh();
                 }
             }
         } catch (err) {
-            setMessage("An unexpected error occurred.");
+            console.error("handleAuth Exception:", err);
+            setMessage("An unexpected error occurred: " + err.message);
         } finally {
+            console.log("handleAuth finally block reached, stopping loading.");
             setIsLoading(false);
         }
     };
