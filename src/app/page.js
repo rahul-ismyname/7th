@@ -28,7 +28,7 @@ import { BottomNav } from "@/components/mobile/BottomNav";
 
 function HomeContent() {
     const { places, nearbyPlaces, fetchNearbyPlaces, fetchPlaceById, isLoading } = usePlaces();
-    const { user } = useAuth();
+    const { user, isAuthLoaded } = useAuth();
     const { activeTickets } = useTickets();
     const router = useRouter();
     const [selectedPlaceId, setSelectedPlaceId] = useState(undefined);
@@ -290,9 +290,9 @@ function HomeContent() {
             </section>
             {/* Debug Info - Remove before production */}
             <div className="fixed bottom-4 left-4 z-50 p-4 bg-black/80 text-white text-xs rounded-lg max-w-sm overflow-hidden pointer-events-none">
-                <p className="font-bold text-yellow-400 mb-1">Auth Debug:</p>
+                <p className="font-bold text-yellow-400 mb-1">Auth Debug (v2):</p>
                 <p>User: {user ? user.email : "NULL"}</p>
-                <p>Loading: {isLoading ? "YES" : "NO"}</p>
+                <p>Auth Loaded: {isAuthLoaded ? "YES" : "NO"}</p>
                 <p>ViewMode: {viewMode}</p>
             </div>
         </main >
