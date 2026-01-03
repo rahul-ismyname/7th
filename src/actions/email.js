@@ -3,46 +3,45 @@
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    pool: true,
-    maxConnections: 2, // Reducing connections to avoid aggression flags
-    maxMessages: 100,
-    rateLimit: 1, // 1 email per second max to prevent throttling
-    logger: true,
-    debug: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
+  host: process.env.SMTP_HOST || 'mail.waitly.in',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false, // TLS (STARTTLS)
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
 });
 
 // Helper to wrap sendMail in a promise
 async function sendMail(to, subject, html) {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        console.error("CRITICAL: EMAIL_USER or EMAIL_PASS not defined!");
-        return { success: false, error: "Configuration Error: Missing Gmail Credentials" };
-    }
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error("CRITICAL: EMAIL_USER or EMAIL_PASS not defined!");
+    return { success: false, error: "Configuration Error: Missing Gmail Credentials" };
+  }
 
-    try {
-        const info = await transporter.sendMail({
-            from: `"Waitly" <${process.env.EMAIL_USER}>`,
-            to,
-            subject,
-            html
-        });
-        console.log("Email sent successfully:", info.messageId);
-        return { success: true, data: info };
-    } catch (error) {
-        console.error("Nodemailer Error:", error);
-        return { success: false, error };
-    }
+  try {
+    const info = await transporter.sendMail({
+      from: `"Waitly" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      html
+    });
+    console.log("Email sent successfully:", info.messageId);
+    return { success: true, data: info };
+  } catch (error) {
+    console.error("Nodemailer Error:", error);
+    return { success: false, error };
+  }
 }
 
 export async function sendWelcomeEmail(email, verificationLink) {
-    return sendMail(
-        email,
-        'Verify your Waitly Account',
-        `
+  return sendMail(
+    email,
+    'Verify your Waitly Account',
+    `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 16px; border: 1px solid #f1f5f9;">
         <h1 style="color: #0f172a; letter-spacing: -1px; margin-bottom: 20px; font-size: 32px;">Welcome to Waitly.</h1>
         <p style="color: #64748b; line-height: 1.6; font-size: 16px;">
@@ -61,14 +60,14 @@ export async function sendWelcomeEmail(email, verificationLink) {
         </p>
       </div>
     `
-    );
+  );
 }
 
 export async function sendPasswordResetEmail(email, resetLink) {
-    return sendMail(
-        email,
-        'Reset your Waitly Password',
-        `
+  return sendMail(
+    email,
+    'Reset your Waitly Password',
+    `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 16px; border: 1px solid #f1f5f9;">
         <h1 style="color: #0f172a; letter-spacing: -1px; margin-bottom: 20px;">Password Reset Request</h1>
         <p style="color: #64748b; line-height: 1.6;">
@@ -86,14 +85,14 @@ export async function sendPasswordResetEmail(email, resetLink) {
         </p>
       </div>
     `
-    );
+  );
 }
 
 export async function sendDeletionConfirmationEmail(email, businessName, deleteLink) {
-    return sendMail(
-        email,
-        `⚠️ Confirm Deletion: ${businessName}`,
-        `
+  return sendMail(
+    email,
+    `⚠️ Confirm Deletion: ${businessName}`,
+    `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff; border-radius: 16px; border: 1px solid #fecaca;">
         <div style="text-align: center; margin-bottom: 30px;">
           <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 16px; display: inline-flex; align-items: center; justify-content: center;">
@@ -129,5 +128,5 @@ export async function sendDeletionConfirmationEmail(email, businessName, deleteL
         </p>
       </div>
     `
-    );
+  );
 }
